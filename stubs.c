@@ -509,18 +509,6 @@ void ble_evt_flash_ps_key(const struct ble_msg_flash_ps_key_evt_t *msg)
 {
 }
 
-void ble_evt_connection_status(const struct ble_msg_connection_status_evt_t *msg)
-{
-    if(msg->flags&connection_connected)
-    {
-        printf("#connected -> disconnect\n");
-        ble_cmd_connection_disconnect(msg->connection);
-    }else
-    {
-        printf("#Not connected -> Scan\n");
-        ble_cmd_gap_discover(1);
-    }
-}
 
 void ble_evt_connection_version_ind(const struct ble_msg_connection_version_ind_evt_t *msg)
 {
@@ -567,13 +555,6 @@ void ble_evt_sm_smp_data(const struct ble_msg_sm_smp_data_evt_t *msg)
 {
 }
 
-void ble_evt_gap_scan_response(const struct ble_msg_gap_scan_response_evt_t *msg)
-{
-    int i;
-    for(i=0;i<6;i++)
-        printf("%02x%s",msg->sender.addr[5-i],i<5?":":"");
-    printf("\t%d\n",msg->rssi);
-}
 
 void ble_evt_gap_mode_changed(const struct ble_msg_gap_mode_changed_evt_t *msg)
 {

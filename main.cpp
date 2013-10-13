@@ -9,7 +9,11 @@
         if(!(cmd)) {  printf("%s: %d\n", (err),(int)GetLastError());  exit(-1);  } else if (0) {printf("%s: OK\n", #cmd);}\
 } while(0);
 
-HANDLE serial_handle;
+
+namespace
+{
+    HANDLE serial_handle;
+}
 
 void output(uint8 len1, uint8* data1, uint16 len2, uint8* data2)
 {
@@ -21,22 +25,19 @@ void output(uint8 len1, uint8* data1, uint16 len2, uint8* data2)
 int read_message()
 {
     DWORD rread;
-    const struct ble_msg *apimsg;
     struct ble_header apihdr;
-    unsigned char data[256];//enough for BLE
-
-    //read header
-    if(!ReadFile(serial_handle, (unsigned char*)&apihdr, 4, &rread, NULL))
+    if(!ReadFile(serial_handle, (unsigned char*)&apihdr, 4, &rread, NULL))  //read header
         return GetLastError();
 
     if(!rread)  return 0;
 
     //read rest if needed
+    unsigned char data[256];//enough for BLE
     if(apihdr.lolen)
         if(!ReadFile(serial_handle, data, apihdr.lolen, &rread, NULL))
             return GetLastError();
 
-    apimsg = ble_get_msg_hdr (apihdr);
+    const ble_msg * apimsg = ble_get_msg_hdr (apihdr);
     if(!apimsg)
     {
         printf("ERROR: Message not found:%d:%d\n",(int)apihdr.cls,(int)apihdr.command);
@@ -65,6 +66,36 @@ void close_serial_port(HANDLE serial_handle)
     CloseHandle(serial_handle);    
 }
 
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------//
+
+class state_machine
+{
+    enum state_t { not_connected, discovered,  };
+    state_t  my_state = not_connected;
+public:
+    explicit state_machine () {}
+};
+
+void ble_evt_connection_status(const struct ble_msg_connection_status_evt_t *msg)
+{
+    if(msg->flags & connection_connected)
+    {
+        printf("#connected -> disconnect\n");
+        ble_cmd_connection_disconnect(msg->connection);
+    }else
+    {
+        printf("#Not connected -> Scan\n");
+        ble_cmd_gap_discover(gap_discover_observation);
+    }
+}
+
+void ble_evt_gap_scan_response(const struct ble_msg_gap_scan_response_evt_t *msg)
+{
+    int i;
+    for(i=0;i<6;i++)
+        printf("%02x%s",msg->sender.addr[5-i],i<5?":":"");
+    printf("\t%d\n",msg->rssi);
+}
 
 int main(int argc, char *argv[] )
 {
@@ -79,8 +110,18 @@ int main(int argc, char *argv[] )
     ENSURE (serial_handle != INVALID_HANDLE_VALUE, "Error opening serial port");
 
     ble_cmd_gap_end_procedure();         //stop previous operation
+    
+    
+    
+    
     ble_cmd_connection_get_status(0);    //get connection status,current command will be handled in response
+    
+    
+    //ble_cmd_gap_discover(gap_discover_observation);
 
-    for (; !read_message(); );
+    for (; !read_message(); )
+    {
+    
+    }
     return 0;
 }
