@@ -60,14 +60,22 @@ HANDLE open_serial_port (const char *port_name_arg)
     return  serial_handle;
 }
 
+void close_serial_port(HANDLE *  serial_handle)
+{
+    CloseHandle(serial_handle);    
+}
+
+
 int main(int argc, char *argv[] )
 {
     bglib_output = output;
     if ( argc < 2 )  exit(-1);
     
     serial_handle = open_serial_port( argv[1] );
-    //ble_cmd_system_reset(0);
-    //serial_handle = open_serial_port( argv[1] );
+    ble_cmd_system_reset(0);
+    close_serial_port(serial_handle);
+    
+    serial_handle = open_serial_port( argv[1] );
     ENSURE (serial_handle != INVALID_HANDLE_VALUE, "Error opening serial port");
 
     ble_cmd_gap_end_procedure();         //stop previous operation
