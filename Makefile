@@ -1,4 +1,4 @@
-CC = gcc
+CC = g++
 
 TARGET = scan_example
 
@@ -14,14 +14,15 @@ else
 	LIBS = -lm
 endif
 
-SRCS := $(wildcard *.c)
-OBJS := $(SRCS:.c=.o)
-DEPS := $(SRCS:.c=.d)
+SRCSC := $(wildcard *.c)
+SRCSCPP := $(wildcard *.cpp)
+OBJS := $(SRCSC:.c=.o) $(SRCSCPP:.cpp=.o) 
+DEPS := $(SRCS:.c=.d)  $(SRCSCPP:.cpp=.d)   
 
 all: $(TARGET)
 
 %.o: %.c
-	$(CC) -O3 -Wall -c -std=c99 -fmessage-length=0 -DPLATFORM_$(PLATFORM) -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o"$@" "$<"
+	$(CC) -O3 -Wall -c -fmessage-length=0 -DPLATFORM_$(PLATFORM) -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o"$@" "$<"
 
 $(TARGET): $(OBJS)
 	@echo 'Building target: $@'

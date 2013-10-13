@@ -60,7 +60,7 @@ HANDLE open_serial_port (const char *port_name_arg)
     return  serial_handle;
 }
 
-void close_serial_port(HANDLE *  serial_handle)
+void close_serial_port(HANDLE serial_handle)
 {
     CloseHandle(serial_handle);    
 }
