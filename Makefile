@@ -1,12 +1,12 @@
-CC = g++
+CC = mingw32-g++.exe -static 
 
-TARGET = scan_example
+TARGET = grasphost
 
 MACHINE = $(shell $(CC) -dumpmachine)
 # Windows
 ifneq (,$(or $(findstring mingw, $(MACHINE)), $(findstring cygwin, $(MACHINE))))
 	PLATFORM = WIN
-	LIBS = -lm -lsetupapi
+	LIBS = -lm -lsetupapi 
 	RM = del
 # POSIX
 else

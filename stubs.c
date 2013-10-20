@@ -355,9 +355,11 @@ void ble_rsp_attributes_read_type(const struct ble_msg_attributes_read_type_rsp_
 {
 }
 
+/*
 void ble_rsp_connection_disconnect(const struct ble_msg_connection_disconnect_rsp_t *msg)
 {
 }
+*/
 
 void ble_rsp_connection_get_rssi(const struct ble_msg_connection_get_rssi_rsp_t *msg)
 {
@@ -395,9 +397,11 @@ void ble_rsp_attclient_find_by_type_value(const struct ble_msg_attclient_find_by
 {
 }
 
+/*
 void ble_rsp_attclient_read_by_group_type(const struct ble_msg_attclient_read_by_group_type_rsp_t *msg)
 {
 }
+*/
 
 void ble_rsp_attclient_read_by_type(const struct ble_msg_attclient_read_by_type_rsp_t *msg)
 {
@@ -435,17 +439,23 @@ void ble_rsp_gap_set_mode(const struct ble_msg_gap_set_mode_rsp_t *msg)
 {
 }
 
+/*
 void ble_rsp_gap_discover(const struct ble_msg_gap_discover_rsp_t *msg)
 {
 }
+*/
 
+/*
 void ble_rsp_gap_connect_direct(const struct ble_msg_gap_connect_direct_rsp_t *msg)
 {
 }
+*/
 
+/*
 void ble_rsp_gap_end_procedure(const struct ble_msg_gap_end_procedure_rsp_t *msg)
 {
 }
+*/
 
 void ble_rsp_hardware_io_port_config_irq(const struct ble_msg_hardware_io_port_config_irq_rsp_t *msg)
 {
@@ -522,22 +532,26 @@ void ble_evt_connection_raw_rx(const struct ble_msg_connection_raw_rx_evt_t *msg
 {
 }
 
+/*
 void ble_evt_connection_disconnected(const struct ble_msg_connection_disconnected_evt_t *msg)
 {
-    ble_cmd_connection_get_status(0);
 }
+*/
 
 void ble_evt_attclient_indicated(const struct ble_msg_attclient_indicated_evt_t *msg)
 {
 }
-
+/*
 void ble_evt_attclient_procedure_completed(const struct ble_msg_attclient_procedure_completed_evt_t *msg)
 {
 }
+*/
 
+/*
 void ble_evt_attclient_group_found(const struct ble_msg_attclient_group_found_evt_t *msg)
 {
 }
+*/
 
 void ble_evt_attclient_attribute_found(const struct ble_msg_attclient_attribute_found_evt_t *msg)
 {

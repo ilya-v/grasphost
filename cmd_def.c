@@ -319,7 +319,7 @@ void ble_send_message(uint8 msgid,...)
             case 9:/*string*/
             case 8:/*uint8 array*/
                 data_len=va_arg(va,int);
-                *b++=data_len;        
+                *b++=(uint8)data_len;        
                 
                 u16=data_len+packet.header.lolen;
                 packet.header.lolen=u16&0xff;
