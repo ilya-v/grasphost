@@ -2461,7 +2461,7 @@ void ble_rsp_gap_end_procedure(const struct ble_msg_gap_end_procedure_rsp_t *msg
 /**Connect to any device on whitelist**/
 void ble_rsp_gap_connect_selective(const struct ble_msg_gap_connect_selective_rsp_t *msg);
 
-/**Set scan and advertising filtering parameters**/
+/**Set scan and advertising filtering parameters**/ 
 void ble_rsp_gap_set_filtering(const struct ble_msg_gap_set_filtering_rsp_t *msg);
 
 /**Set scan parameters**/
