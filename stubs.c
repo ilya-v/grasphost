@@ -407,9 +407,11 @@ void ble_rsp_attclient_read_by_type(const struct ble_msg_attclient_read_by_type_
 {
 }
 
+/*
 void ble_rsp_attclient_find_information(const struct ble_msg_attclient_find_information_rsp_t *msg)
 {
 }
+*/
 
 void ble_rsp_attclient_read_by_handle(const struct ble_msg_attclient_read_by_handle_rsp_t *msg)
 {
