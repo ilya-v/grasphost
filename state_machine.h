@@ -19,13 +19,11 @@ public:
 
     struct event_handler_not_found_ex { std::string info; };
 
-    static void start() { set_state(0);  process_event(&start_event); }
+    void start() { set_state(0);  process_event(&start_event); }
 
-    static void set_state(const state_t  new_state);
-
-    template <typename TEvent>  static void process_event(const TEvent *e)
+    template <typename TEvent>  void process_event(const TEvent *e)
     {
-        std::clog << "\nState " << get_state() << "\tEvent " << typeid(e).name() << std::endl;
+        std::clog << "State " << get_state() << "\tEvent " << typeid(*e).name() << std::endl;
         bool handler_found = false;
         for (auto p_action : actions[current_state])
         {
@@ -43,15 +41,14 @@ public:
         }
     }
 
-protected:
-    typedef std::map <state_t, std::vector<ActionBase *>> actions_map_t;
-    static actions_map_t  actions;
-    static void register_action(const state_t state, ActionBase *action) { actions[state];  
-    actions[state].push_back(action); }
-    static state_t  get_state()  { return current_state;      }
+    state_t  get_state()  { return current_state; }
+    void set_state(const state_t state);
 
 private:
-    static state_t current_state;
+    typedef std::map <state_t, std::vector<ActionBase *>> actions_map_t;
+    actions_map_t  actions;
+    void register_action(const state_t state, ActionBase *action) { actions[state].push_back(action); }
+    state_t current_state = 0;
 };
 
 
@@ -60,7 +57,7 @@ typedef StateMachine :: start_event_t  StateMachine_StartEvent;
 
 struct ActionBase
 {
-    ActionBase(const StateMachine :: state_t state)   { StateMachine :: register_action(state, this); }
+    ActionBase(StateMachine &sm, const StateMachine :: state_t state) { sm.register_action(state, this); }
     virtual ~ActionBase() {}
 };
 
@@ -68,7 +65,7 @@ template <typename TEvent> struct Action : public ActionBase
 {
     typedef void (*handler_t) (const TEvent *);
     handler_t  handler;
-    Action(const StateMachine::state_t state, const handler_t  handler) : ActionBase(state), handler(handler) {}
+    Action(StateMachine &sm, const StateMachine::state_t state, const handler_t  handler) : ActionBase(sm, state), handler(handler) {}
     void handle(const TEvent *e) { handler(e); }
 };
 
@@ -76,15 +73,15 @@ template <typename TEvent> struct Action : public ActionBase
 #define ACTION_TYPE(state, TEvent, e)           Action__##state##__##TEvent##__##e
 #define HANDLER_FUNC_NAME(state, TEvent, e)     Handler__##state##__##TEvent##__##e
 
-#define ACTION(state, TEvent, e) \
+#define ACTION(state_machine, state, TEvent, e) \
     void HANDLER_FUNC_NAME(state, TEvent, e)(const TEvent *); \
 struct ACTION_TYPE(state, TEvent, e) : public Action<TEvent>{ \
-    ACTION_TYPE(state, TEvent, e)() : Action<TEvent>(state, HANDLER_FUNC_NAME(state, TEvent, e)) {} \
+    ACTION_TYPE(state, TEvent, e)() : Action<TEvent>(state_machine, state, HANDLER_FUNC_NAME(state, TEvent, e)) {} \
 } action_##state##__##TEvent##__##e##; \
     void HANDLER_FUNC_NAME(state, TEvent, e)(const TEvent *e)
 
 
-#define EVENT(callback, event_struct)  void callback (const struct event_struct *e) { \
-    std::clog << "\nEvent " << typeid(e).name() << std::endl;  StateMachine::process_event(e);     }
+#define EVENT(state_machine, callback, event_struct)  void callback (const struct event_struct *e) { \
+    std::clog << "\n\nEvent " << typeid(*e).name() << std::endl;  state_machine.process_event(e);  }
 
 #endif

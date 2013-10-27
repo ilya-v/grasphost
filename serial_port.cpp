@@ -33,7 +33,7 @@ void  SerialPort::RestartInit(const char *port_name, std::function<void()> f_res
     f_restart();
     this->Close();
     myHandle = PersistentOpen(port_name);
-    ENSURE(myHandle != INVALID_HANDLE_VALUE, "Error opening serial port");
+        ENSURE(myHandle != INVALID_HANDLE_VALUE, "Error opening serial port");
 }
 
 

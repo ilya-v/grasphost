@@ -18,12 +18,10 @@
 #include "serial_port.h"
 #include "state_machine.h"
 
-#define CURLINE() __FUNCTION__ << ":" << __LINE__ << ":\t"
-
-#define LOG(cmd) do { std::clog << "\t" << CURLINE() << #cmd << std::endl; cmd; } while(0);
+#define LOG(cmd) do { std::clog << "\t" << __LINE__ << ": " << #cmd << std::endl; cmd; } while(0);
 
 #define ENSURE(cmd, err)  do { if (!(cmd)) { \
-    std::cout << "ERROR in " << CURLINE() << (err) << std::endl; throw BaseException(); } } while (0);
+    std::cout << "ERROR in line " << __LINE__ << "\t" << (err) << std::endl; throw BaseException(); } } while (0);
 
 struct BaseException {};
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -112,72 +110,74 @@ namespace
     bd_addr  remote_device_addr;
     uint8_t  connection_handle = 0;
     bool     grasp_uuid_found = false;
+
+    StateMachine  sm;
 };
 
-ACTION(STATE_INIT, StateMachine_StartEvent, e)                  { LOG(ble_cmd_gap_end_procedure()); /*stop prev op*/ }
-ACTION(STATE_INIT, ble_msg_gap_end_procedure_rsp_t, e)          { LOG(ble_cmd_gap_discover(gap_discover_observation)); }
-ACTION(STATE_INIT, ble_msg_gap_discover_rsp_t, e)               {
+ACTION(sm, STATE_INIT, StateMachine_StartEvent, e)                  { LOG(ble_cmd_gap_end_procedure()); /*stop prev op*/ }
+ACTION(sm, STATE_INIT, ble_msg_gap_end_procedure_rsp_t, e)          { LOG(ble_cmd_gap_discover(gap_discover_observation)); }
+ACTION(sm, STATE_INIT, ble_msg_gap_discover_rsp_t, e)               {
     ENSURE(e->result == 0, "Cannot start the Discover procedure");  
-    StateMachine :: set_state(STATE_DISCOVERING); }
+    sm.set_state(STATE_DISCOVERING); }
 
 
-ACTION(STATE_DISCOVERING, ble_msg_gap_scan_response_evt_t, e)   {
+ACTION(sm, STATE_DISCOVERING, ble_msg_gap_scan_response_evt_t, e)   {
     remote_device_addr = e->sender;
     print_bd_addr(remote_device_addr);
     std::cout << (int)e->rssi << "\t" << get_device_name_from_scan_response(e) << std::endl;
     LOG(ble_cmd_gap_end_procedure());
 }
 
-ACTION(STATE_DISCOVERING, ble_msg_gap_end_procedure_rsp_t, e)   {
+ACTION(sm, STATE_DISCOVERING, ble_msg_gap_end_procedure_rsp_t, e)   {
     LOG(ble_cmd_gap_connect_direct(&remote_device_addr, gap_address_type_public, 40, 60, 100, 0));
 }
 
-ACTION(STATE_DISCOVERING, ble_msg_gap_connect_direct_rsp_t, e)  {
+ACTION(sm, STATE_DISCOVERING, ble_msg_gap_connect_direct_rsp_t, e)  {
     ENSURE(e->result == 0, "Cannot establish a direct connection");
-    StateMachine :: set_state(STATE_CONNECTING);  }
+    sm.set_state(STATE_CONNECTING);  }
 
-ACTION(STATE_CONNECTING, ble_msg_connection_disconnected_evt_t, e)  { LOG(StateMachine::start(); ); }
+ACTION(sm, STATE_CONNECTING, ble_msg_connection_disconnected_evt_t, e)  { LOG(sm.start(); ); }
 
-ACTION(STATE_CONNECTING, ble_msg_connection_status_evt_t, e)    {
+ACTION(sm, STATE_CONNECTING, ble_msg_connection_status_evt_t, e)    {
     if (! (e->flags & connection_connected) )
-        LOG(StateMachine::start(););
+        LOG(sm.start(););
 
     remote_device_addr = e->address;
     connection_handle = e->connection;
     print_bd_addr(remote_device_addr);
-    LOG(ble_cmd_attclient_read_by_group_type(connection_handle, 0x0001, 0xffff, 2, primary_service_uuid.uuid_reversed));
+    LOG(ble_cmd_attclient_read_by_group_type(connection_handle, 0x0001, 0xffff, 2, &primary_service_uuid.uuid_reversed.front() ));
 }
 
-ACTION(STATE_CONNECTING, ble_msg_attclient_read_by_group_type_rsp_t, e) {
+ACTION(sm, STATE_CONNECTING, ble_msg_attclient_read_by_group_type_rsp_t, e) {
     ENSURE(e->result == 0, "Cannot start service discovery");
     grasp_uuid_found = false;
-    StateMachine::set_state(STATE_CONNECTED);
+    sm.set_state(STATE_CONNECTED);
 }
 
-ACTION(STATE_CONNECTED, ble_msg_connection_disconnected_evt_t, e){ LOG(StateMachine::start();); }
+ACTION(sm, STATE_CONNECTED, ble_msg_connection_disconnected_evt_t, e){ LOG(sm.start();); }
 
-ACTION(STATE_CONNECTED, ble_msg_attclient_group_found_evt_t, e) {
+ACTION(sm, STATE_CONNECTED, ble_msg_attclient_group_found_evt_t, e) {
     service_uuid_t  found_uuid(e->uuid.data, e->uuid.len);
-    std::cout   <<   "\tFrounduuid:\t" << found_uuid.to_string() 
-                << "\n\tGrasp uuid:\t" << grasp_service_uuid.to_string() << std::endl;
+    std::cout   <<   "\tFround uuid:\t" << found_uuid.to_string() 
+                << "\n\tGrasp  uuid:\t" << grasp_service_uuid.to_string() << std::endl;
     grasp_uuid_found = grasp_uuid_found || (found_uuid == grasp_service_uuid);
 }
 
-ACTION(STATE_CONNECTED, ble_msg_attclient_procedure_completed_evt_t, e) 
+ACTION(sm, STATE_CONNECTED, ble_msg_attclient_procedure_completed_evt_t, e) 
 { std::cout << "grasp uuid " << (grasp_uuid_found ? "found" : "not found") << std::endl; }
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------//
-EVENT(ble_rsp_gap_end_procedure,                ble_msg_gap_end_procedure_rsp_t);
-EVENT(ble_evt_connection_status,                ble_msg_connection_status_evt_t);
-EVENT(ble_evt_connection_disconnected,          ble_msg_connection_disconnected_evt_t);
-EVENT(ble_rsp_connection_disconnect,            ble_msg_connection_disconnect_rsp_t);
-EVENT(ble_evt_gap_scan_response,                ble_msg_gap_scan_response_evt_t);
-EVENT(ble_rsp_gap_discover,                     ble_msg_gap_discover_rsp_t);
-EVENT(ble_rsp_gap_connect_direct,               ble_msg_gap_connect_direct_rsp_t);
-EVENT(ble_rsp_attclient_read_by_group_type,     ble_msg_attclient_read_by_group_type_rsp_t);
-EVENT(ble_evt_attclient_group_found,            ble_msg_attclient_group_found_evt_t);
-EVENT(ble_evt_attclient_procedure_completed,    ble_msg_attclient_procedure_completed_evt_t);
+EVENT(sm, ble_rsp_gap_end_procedure,                ble_msg_gap_end_procedure_rsp_t);
+EVENT(sm, ble_evt_connection_status, ble_msg_connection_status_evt_t);
+EVENT(sm, ble_evt_connection_disconnected, ble_msg_connection_disconnected_evt_t);
+EVENT(sm, ble_rsp_connection_disconnect, ble_msg_connection_disconnect_rsp_t);
+EVENT(sm, ble_evt_gap_scan_response, ble_msg_gap_scan_response_evt_t);
+EVENT(sm, ble_rsp_gap_discover, ble_msg_gap_discover_rsp_t);
+EVENT(sm, ble_rsp_gap_connect_direct, ble_msg_gap_connect_direct_rsp_t);
+EVENT(sm, ble_rsp_attclient_read_by_group_type, ble_msg_attclient_read_by_group_type_rsp_t);
+EVENT(sm, ble_evt_attclient_group_found, ble_msg_attclient_group_found_evt_t);
+EVENT(sm, ble_evt_attclient_procedure_completed, ble_msg_attclient_procedure_completed_evt_t);
 
 
 int main(int argc, char *argv[] )
@@ -193,7 +193,7 @@ int main(int argc, char *argv[] )
 
     serial_port.RestartInit(argv[1], []() { ble_cmd_system_reset(0); });
 
-    StateMachine::start();
+    sm.start();
 
     for (; ; )
     {
