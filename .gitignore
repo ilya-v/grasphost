@@ -223,4 +223,6 @@ vs-proj.vcxproj.filters
 vs-proj.vcxproj
 build.cmd
 run.cmd
-vs-proj/
+vs-proj/*
+vs-proj/vs-proj.vcxproj
+vs-proj/vs-proj.vcxproj.filters
