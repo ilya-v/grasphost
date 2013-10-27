@@ -219,7 +219,8 @@ pip-log.txt
 *.exe
 *.sln
 *.udb
-*.vcxproj.filters
-*.vcxproj
+vs-proj.vcxproj.filters
+vs-proj.vcxproj
 build.cmd
 run.cmd
+vs-proj/
