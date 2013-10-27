@@ -25,16 +25,14 @@
 struct BaseException {};
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------//
 
-struct service_uuid_t
+struct ble_uuid_t
 {
-    std::vector<unsigned char>
-        uuid,
-        uuid_reversed;
+    std::vector<unsigned char>      uuid,   uuid_reversed;
     
-    service_uuid_t(const std::vector<unsigned char>  & uuid) : uuid(uuid), uuid_reversed(uuid.size())
+    ble_uuid_t(const std::vector<unsigned char>  & uuid) : uuid(uuid), uuid_reversed(uuid.size())
     { std::reverse_copy(uuid.cbegin(), uuid.cend(), uuid_reversed.begin()); }
 
-     service_uuid_t(const unsigned char uuid_arr_reversed[], const unsigned len)
+    ble_uuid_t(const unsigned char uuid_arr_reversed[], const unsigned len)
         : uuid_reversed(uuid_arr_reversed, uuid_arr_reversed + len), uuid(len)
     { std::reverse_copy(uuid_reversed.cbegin(), uuid_reversed.cend(), uuid.begin()); }
 
@@ -50,14 +48,16 @@ struct service_uuid_t
          return uuid_str;
      }
 
-     size_t                 size()                                  const       { return uuid.size();  }
-     const unsigned char *  get_reversed_bytes()                    const       { return &uuid_reversed.front(); }
-     bool                   operator==(const service_uuid_t & x)    const       { return x.uuid == uuid; }
+     size_t                 size()                              const       { return uuid.size();  }
+     const unsigned char *  get_reversed_bytes()                const       { return &uuid_reversed.front(); }
+     bool                   operator==(const ble_uuid_t & x)    const       { return x.uuid == uuid; }
+     bool                   operator< (const ble_uuid_t & x)    const       { return to_string() < x.to_string();  }
 };
 
-service_uuid_t grasp_service_uuid  ({ 0xA5, 0x8F, 0xCF, 0xAE, 0xDB, 0x61, 0x11, 0xE2, 0xB9, 0xB0, 0xF2, 0x3C, 0x91, 0xAE, 0xC0, 0x5A }) ;
-//service_uuid_t grasp_service_uuid    ({ 0xe0, 0x01 });
-service_uuid_t primary_service_uuid  ({ 0x28, 0x00 });
+ble_uuid_t grasp_service_uuid       ({ 0xA5, 0x8F, 0xCF, 0xAE, 0xDB, 0x61, 0x11, 0xE2, 0xB9, 0xB0, 0xF2, 0x3C, 0x91, 0xAE, 0xC0, 0x5A }) ;
+ble_uuid_t primary_service_uuid     ({ 0x28, 0x00 });
+ble_uuid_t scan_result_char_uuid    ({ 0x33, 0x22, 0xF2, 0x4A, 0xDB, 0x73, 0x11, 0xE2, 0xB9, 0xB0, 0xF2, 0x3C, 0x91, 0xAE, 0xC0, 0x53 });
+
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------//
 
 std::string bd_addr_to_string(const bd_addr &a)
@@ -106,16 +106,15 @@ std::string get_device_name_from_scan_response(const ble_msg_gap_scan_response_e
 
 namespace
 {
-    std::set<bd_addr> checked_devices;
-    bd_addr  remote_device_addr;
-    uint8_t  connection_handle = 0;
-    bool     grasp_uuid_found = false;
+    struct char_group_t     { uint16_t first_group_handle, last_group_handle; };
+    std::set<bd_addr>                   checked_devices;
+    std::map<ble_uuid_t, char_group_t>  services_found;
+    std::map<ble_uuid_t, uint16_t>      chars_found;
+    bd_addr                             remote_device_addr;
+    uint8_t                             connection_handle       = 0;
 
-    uint16_t
-        first_group_handle  = 0,
-        last_group_handle   = 0;
-
-    SM_DEFINE_WITH_STATES(sm, STATE_INIT, STATE_DISCOVERING, STATE_CONNECTING, STATE_CONNECTED, STATE_ATTRIB_INFO_SEARCH);
+    SM_DEFINE_WITH_STATES(sm, 
+        STATE_INIT, STATE_DISCOVERING, STATE_CONNECTING, STATE_CONNECTED, STATE_ATTRIB_INFO_SEARCH, STATE_MONITORING);
 };
 
 SM_ACTION(sm, STATE_INIT, StateMachine_StartEvent, e)                  { LOG(ble_cmd_gap_end_procedure()); /*stop prev op*/ }
@@ -157,37 +156,32 @@ SM_ACTION(sm, STATE_CONNECTING, ble_msg_connection_status_evt_t, e)    {
     }
     remote_device_addr = e->address;
     connection_handle = e->connection;
-    std::cout << "*** \tChecking the  device " << bd_addr_to_string(remote_device_addr) << "for the primary grasp service" << std::endl;
+    std::cout << "*** \tChecking the  device " << bd_addr_to_string(remote_device_addr) << "for the primary service" << std::endl;
     LOG(ble_cmd_attclient_read_by_group_type(connection_handle, 0x0001, 0xffff, primary_service_uuid.size(), primary_service_uuid.get_reversed_bytes() ));
 }
 
 SM_ACTION(sm, STATE_CONNECTING, ble_msg_attclient_read_by_group_type_rsp_t, e) {
     ENSURE(e->result == 0, "Cannot start service discovery");
-    grasp_uuid_found = false;
     sm.set_state(STATE_CONNECTED);
 }
 
 SM_ACTION(sm, STATE_CONNECTED, ble_msg_connection_disconnected_evt_t, e){ LOG(sm.start();); }
 
 SM_ACTION(sm, STATE_CONNECTED, ble_msg_attclient_group_found_evt_t, e) {
-    service_uuid_t  found_uuid(e->uuid.data, e->uuid.len);
+    ble_uuid_t  found_uuid(e->uuid.data, e->uuid.len); 
     std::cout   <<   "***\tFround uuid:\t" << found_uuid.to_string() 
                 << "\n***\tGrasp  uuid:\t" << grasp_service_uuid.to_string() << std::endl;
-    if (found_uuid == grasp_service_uuid)
-    {
-        grasp_uuid_found    = true;
-        first_group_handle  = e->start;
-        last_group_handle   = e->end;
-        std::cout << "*** \tfirst_group_hanlde = " << first_group_handle << "; last_group_handle = " << last_group_handle << std::endl;
-    }
+    services_found [found_uuid] = char_group_t{ e->start, e->end };
 }
 
 SM_ACTION(sm, STATE_CONNECTED, ble_msg_attclient_procedure_completed_evt_t, e)  { 
-    std::cout << "*** \tgrasp service with uuid " << grasp_service_uuid.to_string() << (grasp_uuid_found ? " found" : "not found") << std::endl;
-    if (!grasp_uuid_found)
-        sm.start();
-    else 
-        LOG(ble_cmd_attclient_find_information(e->connection, first_group_handle, last_group_handle));
+    std::cout << "*** \tgrasp service with uuid " << grasp_service_uuid.to_string() << (services_found.count(grasp_service_uuid) ? " found" : "not found") << std::endl;
+    if (services_found.count(grasp_service_uuid))
+    {
+        chars_found.clear();
+        LOG(ble_cmd_attclient_find_information(e->connection, services_found[grasp_service_uuid].first_group_handle, services_found[grasp_service_uuid].last_group_handle));
+    }
+    else  sm.start();
 }
 
 SM_ACTION(sm, STATE_CONNECTED, ble_msg_attclient_find_information_rsp_t, e)  {
@@ -196,11 +190,15 @@ SM_ACTION(sm, STATE_CONNECTED, ble_msg_attclient_find_information_rsp_t, e)  {
 }
 
 SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_attclient_find_information_found_evt_t, e)  {
-    service_uuid_t char_uuid(e->uuid.data, e->uuid.len);
-    std::cout << "*** \tCharacterisitics found: " << char_uuid.to_string() << std::endl;
+    chars_found[ ble_uuid_t(e->uuid.data, e->uuid.len) ] = e->chrhandle;
+    std::cout << "*** \tCharacterisitics found: " << ble_uuid_t(e->uuid.data, e->uuid.len).to_string() << std::endl;
 }
 
 SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_attclient_procedure_completed_evt_t, e)  {
+    std::cout << "*** \tCharacteristics search finished" << std::endl;
+    std::cout << "*** \tScan result char with uuid " << scan_result_char_uuid.to_string() << (chars_found.count(scan_result_char_uuid)? " found" : " not found") << std::endl;
+    sm.set_state(chars_found.count(scan_result_char_uuid) ? STATE_MONITORING : STATE_INIT);
+    
 }
 
 SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_attclient_find_information_rsp_t, e)  {
@@ -210,19 +208,29 @@ SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_attclient_find_information_rsp_t
 
 SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_connection_disconnected_evt_t, e){ LOG(sm.start();); }
 
+SM_ACTION(sm, STATE_MONITORING, ble_msg_attclient_attribute_value_evt_t, e)
+{
+
+}
+
+SM_ACTION(sm, STATE_MONITORING, ble_msg_connection_disconnected_evt_t, e){ LOG(sm.start();); }
+
 
 //---------------------------------------------------------------------------------------------------------------------------------------//
-SM_EVENT(sm, ble_rsp_gap_end_procedure,                ble_msg_gap_end_procedure_rsp_t);
-SM_EVENT(sm, ble_evt_connection_status, ble_msg_connection_status_evt_t);
-SM_EVENT(sm, ble_evt_connection_disconnected, ble_msg_connection_disconnected_evt_t);
-SM_EVENT(sm, ble_rsp_connection_disconnect, ble_msg_connection_disconnect_rsp_t);
-SM_EVENT(sm, ble_evt_gap_scan_response, ble_msg_gap_scan_response_evt_t);
-SM_EVENT(sm, ble_rsp_gap_discover, ble_msg_gap_discover_rsp_t);
-SM_EVENT(sm, ble_rsp_gap_connect_direct, ble_msg_gap_connect_direct_rsp_t);
-SM_EVENT(sm, ble_rsp_attclient_read_by_group_type, ble_msg_attclient_read_by_group_type_rsp_t);
-SM_EVENT(sm, ble_evt_attclient_group_found, ble_msg_attclient_group_found_evt_t);
-SM_EVENT(sm, ble_evt_attclient_procedure_completed, ble_msg_attclient_procedure_completed_evt_t);
-SM_EVENT(sm, ble_rsp_attclient_find_information, ble_msg_attclient_find_information_rsp_t);
+SM_EVENT(sm, ble_rsp_gap_end_procedure,                 ble_msg_gap_end_procedure_rsp_t                     );
+SM_EVENT(sm, ble_evt_connection_status,                 ble_msg_connection_status_evt_t                     );
+SM_EVENT(sm, ble_evt_connection_disconnected,           ble_msg_connection_disconnected_evt_t               );
+SM_EVENT(sm, ble_rsp_connection_disconnect,             ble_msg_connection_disconnect_rsp_t                 );
+SM_EVENT(sm, ble_evt_gap_scan_response,                 ble_msg_gap_scan_response_evt_t                     );
+SM_EVENT(sm, ble_rsp_gap_discover,                      ble_msg_gap_discover_rsp_t                          );
+SM_EVENT(sm, ble_rsp_gap_connect_direct,                ble_msg_gap_connect_direct_rsp_t                    );
+SM_EVENT(sm, ble_rsp_attclient_read_by_group_type,      ble_msg_attclient_read_by_group_type_rsp_t          );
+SM_EVENT(sm, ble_evt_attclient_group_found,             ble_msg_attclient_group_found_evt_t                 );
+SM_EVENT(sm, ble_evt_attclient_procedure_completed,     ble_msg_attclient_procedure_completed_evt_t         );
+SM_EVENT(sm, ble_rsp_attclient_find_information,        ble_msg_attclient_find_information_rsp_t            );
+SM_EVENT(sm, ble_evt_attclient_find_information_found,  ble_msg_attclient_find_information_found_evt_t      );
+SM_EVENT(sm, ble_evt_attclient_attribute_value,         ble_msg_attclient_attribute_value_evt_t             );
+
 
 
 int main(int argc, char *argv[] )
