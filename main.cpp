@@ -9,36 +9,56 @@
 #include <vector>
 #include <tuple>
 #include <string>
+#include <array>
+#include <algorithm>
 
 #pragma warning( disable : 4200 )
 
 #include "cmd_def.h"
 #include "serial_port.h"
+#include "state_machine.h"
 
 #define CURLINE() __FUNCTION__ << ":" << __LINE__ << ":\t"
+
+#define LOG(cmd) do { std::clog << "\t" << CURLINE() << #cmd << std::endl; cmd; } while(0);
 
 #define ENSURE(cmd, err)  do { if (!(cmd)) { \
     std::cout << "ERROR in " << CURLINE() << (err) << std::endl; throw BaseException(); } } while (0);
 
-#define STATE_EVENT_NOT_IMPLEMENTED() do { std::cout << "ERROR in " << CURLINE() <<  " This event is not implemented in state " \
-<< typeid(this).name() << std::endl; throw BaseException(); } while (0);
-
-#define PRN(str) do { std::cout << CURLINE() << "\n\t" << #str << std::endl;  } while(0);
-#define LOG(str) do { std::cout << CURLINE() << "\n\t" << #str << std::endl; str; } while(0);
-#define LEV(op)  do { std::cout << CURLINE() << std::endl \
- << "\tState " << typeid(*this).name() << "\n\tEvent " << typeid(*e).name() << "\n\tAction "<< (#op)  \
-    << std::endl << std::endl; \
-op; } while(0);
-#define TYPE(t)  do { std::cout << CURLINE() << "\n\t" << typeid(t).name() << std::endl; } while(0);
-
-//-----------------------------------------------------------------------------------------------------------------------------------------------------------//
-
 struct BaseException {};
-
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------//
 
-const unsigned char grasp_service_uuid[] { 0xA5, 0x8F, 0xCF, 0xAE, 0xDB, 0x61, 0x11, 0xE2, 0xB9, 0xB0, 0xF2, 0x3C, 0x91, 0xAE, 0xC0, 0x5A };
+struct service_uuid_t
+{
+    std::vector<unsigned char>  uuid;
+    std::vector<unsigned char>  uuid_reversed;
 
+    service_uuid_t(const std::vector<unsigned char>  & uuid) : uuid(uuid), uuid_reversed(uuid.size())
+    { std::reverse_copy(uuid.cbegin(), uuid.cend(), uuid_reversed.begin()); }
+
+     service_uuid_t(const unsigned char uuid_arr_reversed[], const unsigned len)
+        : uuid_reversed(uuid_arr_reversed, uuid_arr_reversed + len), uuid(len)
+    {
+        std::reverse_copy(uuid_reversed.cbegin(), uuid_reversed.cend(), uuid.begin());
+    }
+
+     std::string to_string() const
+     {
+         std::string uuid_str;
+         for (auto q : uuid)
+         {
+             char b[3];
+             sprintf(b, "%02X", (unsigned)q);
+             uuid_str += b;
+         }
+         return uuid_str;
+     }
+
+     bool operator==(const service_uuid_t & x) { return x.uuid == uuid; }
+};
+
+service_uuid_t grasp_service_uuid  ({ 0xA5, 0x8F, 0xCF, 0xAE, 0xDB, 0x61, 0x11, 0xE2, 0xB9, 0xB0, 0xF2, 0x3C, 0x91, 0xAE, 0xC0, 0x5A }) ;
+service_uuid_t primary_service_uuid({ 0x28, 0x00 });
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------//
 
 void print_bd_addr(const bd_addr &a)
@@ -85,119 +105,69 @@ bool are_uuids_equal(const uint8array &u, const uint8array &v)
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------//
+enum { STATE_INIT = 0, STATE_DISCOVERING, STATE_CONNECTING, STATE_CONNECTED };
 
-struct StartEvent {} start_event;
-
-struct BaseState {
-    static BaseState * cur_state;
-    enum { STATE_BASE, STATE_INIT, STATE_DISCOVERING, STATE_CONNECTING, STATE_CONNECTED };
-    static std::map<int, BaseState *> map_states;
-
-    static void        set_state(const int e_state)                             { cur_state = map_states[e_state]; 
-                                                                                  std::cout << CURLINE() << "New state: " << typeid(*cur_state).name() << std::endl << std::endl; }
-    static BaseState * get_state()                                              { return cur_state;    }
-    template <typename TEvent>  static void process(const TEvent * event)       { std::cout << CURLINE() << "State " << typeid(*cur_state).name() << "\tEvent " << typeid(*event).name() << std::endl;
-                                                                                  get_state()->handle_event(event); }
-    static void start()                                                         { process(&start_event);  }
-
-    virtual void handle_event(const StartEvent *)                               { STATE_EVENT_NOT_IMPLEMENTED(); }
-    virtual void handle_event(const ble_msg_connection_disconnect_rsp_t *)      { STATE_EVENT_NOT_IMPLEMENTED(); }
-    virtual void handle_event(const ble_msg_connection_disconnected_evt_t *)    { STATE_EVENT_NOT_IMPLEMENTED(); }
-    virtual void handle_event(const ble_msg_connection_status_evt_t *)          { STATE_EVENT_NOT_IMPLEMENTED(); }
-    virtual void handle_event(const ble_msg_gap_end_procedure_rsp_t *)          { STATE_EVENT_NOT_IMPLEMENTED(); }
-    virtual void handle_event(const ble_msg_gap_discover_rsp_t      *)          { STATE_EVENT_NOT_IMPLEMENTED(); }
-    virtual void handle_event(const ble_msg_gap_scan_response_evt_t *)          { STATE_EVENT_NOT_IMPLEMENTED(); }
-    virtual void handle_event(const ble_msg_gap_connect_direct_rsp_t *)         { STATE_EVENT_NOT_IMPLEMENTED(); }
-    virtual void handle_event(const ble_msg_attclient_read_by_group_type_rsp_t *)   { STATE_EVENT_NOT_IMPLEMENTED(); }
-    virtual void handle_event(const ble_msg_attclient_group_found_evt_t *)      { STATE_EVENT_NOT_IMPLEMENTED(); }
-    virtual void handle_event(const ble_msg_attclient_procedure_completed_evt_t *)  { STATE_EVENT_NOT_IMPLEMENTED(); }
-protected:
-    void new_state(const int e_state, BaseState * p_state)                      { map_states[e_state] = p_state; }
+namespace
+{
+    bd_addr  remote_device_addr;
+    uint8_t  connection_handle = 0;
+    bool     grasp_uuid_found = false;
 };
 
-std::map<int, BaseState *> BaseState::map_states;
+ACTION(STATE_INIT, StateMachine_StartEvent, e)                  { LOG(ble_cmd_gap_end_procedure()); /*stop prev op*/ }
+ACTION(STATE_INIT, ble_msg_gap_end_procedure_rsp_t, e)          { LOG(ble_cmd_gap_discover(gap_discover_observation)); }
+ACTION(STATE_INIT, ble_msg_gap_discover_rsp_t, e)               {
+    ENSURE(e->result == 0, "Cannot start the Discover procedure");  
+    StateMachine :: set_state(STATE_DISCOVERING); }
 
 
-struct InitState : public BaseState  {
-    InitState() { new_state(STATE_INIT, this); }
+ACTION(STATE_DISCOVERING, ble_msg_gap_scan_response_evt_t, e)   {
+    remote_device_addr = e->sender;
+    print_bd_addr(remote_device_addr);
+    std::cout << (int)e->rssi << "\t" << get_device_name_from_scan_response(e) << std::endl;
+    LOG(ble_cmd_gap_end_procedure());
+}
 
-    void handle_event(const StartEvent                          *e)     { LEV(ble_cmd_gap_end_procedure()); /*stop prev op*/ }
-    void handle_event(const ble_msg_gap_end_procedure_rsp_t     *e)     { LEV(ble_cmd_gap_discover(gap_discover_observation)); }   
-    void handle_event(const ble_msg_gap_discover_rsp_t          *e)     { ENSURE(e->result == 0, "Cannot start the Discover procedure");   set_state(STATE_DISCOVERING);    }
-} state_init;
+ACTION(STATE_DISCOVERING, ble_msg_gap_end_procedure_rsp_t, e)   {
+    LOG(ble_cmd_gap_connect_direct(&remote_device_addr, gap_address_type_public, 40, 60, 100, 0));
+}
 
-struct DiscoveringState : public BaseState  {
-    DiscoveringState() { new_state(STATE_DISCOVERING, this); }
+ACTION(STATE_DISCOVERING, ble_msg_gap_connect_direct_rsp_t, e)  {
+    ENSURE(e->result == 0, "Cannot establish a direct connection");
+    StateMachine :: set_state(STATE_CONNECTING);  }
 
-    bd_addr  remote_device_addr;
+ACTION(STATE_CONNECTING, ble_msg_connection_disconnected_evt_t, e)  { LOG(StateMachine::start(); ); }
 
-    void handle_event(const ble_msg_gap_scan_response_evt_t     *e)     {
-        remote_device_addr = e->sender;
-        print_bd_addr(remote_device_addr);
-        std::cout << (int)e->rssi <<"\t"<< get_device_name_from_scan_response(e) << std::endl;
-        LEV(ble_cmd_gap_end_procedure());
-    }
+ACTION(STATE_CONNECTING, ble_msg_connection_status_evt_t, e)    {
+    if (! (e->flags & connection_connected) )
+        LOG(StateMachine::start(););
 
-    void handle_event(const ble_msg_gap_end_procedure_rsp_t     *e)     { LEV(ble_cmd_gap_connect_direct(&remote_device_addr, gap_address_type_public, 40, 60, 100, 0));  }
-    void handle_event(const ble_msg_gap_connect_direct_rsp_t    *e)     { LEV(ENSURE(e->result == 0, "Cannot establish a direct connection")); set_state(STATE_CONNECTING); }
-}  state_discovering;
+    remote_device_addr = e->address;
+    connection_handle = e->connection;
+    print_bd_addr(remote_device_addr);
+    LOG(ble_cmd_attclient_read_by_group_type(connection_handle, 0x0001, 0xffff, 2, primary_service_uuid.uuid_reversed));
+}
 
+ACTION(STATE_CONNECTING, ble_msg_attclient_read_by_group_type_rsp_t, e) {
+    ENSURE(e->result == 0, "Cannot start service discovery");
+    grasp_uuid_found = false;
+    StateMachine::set_state(STATE_CONNECTED);
+}
 
-struct ConnectingState : public BaseState  {
-    ConnectingState() { new_state(STATE_CONNECTING, this); }
+ACTION(STATE_CONNECTED, ble_msg_connection_disconnected_evt_t, e){ LOG(StateMachine::start();); }
 
-    uint8_t  connection_handle = 0;
-    bd_addr  remote_device_addr;
+ACTION(STATE_CONNECTED, ble_msg_attclient_group_found_evt_t, e) {
+    service_uuid_t  found_uuid(e->uuid.data, e->uuid.len);
+    std::cout   <<   "\tFrounduuid:\t" << found_uuid.to_string() 
+                << "\n\tGrasp uuid:\t" << grasp_service_uuid.to_string() << std::endl;
+    grasp_uuid_found = grasp_uuid_found || (found_uuid == grasp_service_uuid);
+}
 
-    static uint8_t primary_service_uuid[];
-
-    void handle_event(const ble_msg_connection_disconnected_evt_t *e)   { LEV(ble_cmd_gap_discover(gap_discover_observation)); }
-
-    void handle_event(const ble_msg_connection_status_evt_t     *e)     { 
-        if (e->flags & connection_connected)    {
-            remote_device_addr = e->address;
-            connection_handle = e->connection;
-            print_bd_addr(remote_device_addr);
-            LEV(ble_cmd_attclient_read_by_group_type(connection_handle, 0x0001, 0xffff, 2, primary_service_uuid));
-        }
-        else
-            LEV(ble_cmd_gap_discover(gap_discover_observation));       
-    }
-    void handle_event(const ble_msg_gap_discover_rsp_t          *e)     { ENSURE(e->result == 0, "Cannot start the Discover procedure"); set_state(STATE_DISCOVERING);  }
-    void handle_event(const ble_msg_attclient_read_by_group_type_rsp_t *e) { ENSURE(e->result == 0, "Cannot start service discovery"); set_state(STATE_CONNECTED);      }
-} state_connecting;
-
-uint8_t ConnectingState :: primary_service_uuid[] = { 0x00, 0x28 };
-
-
-struct ConnectedState : public BaseState  {
-    ConnectedState() { new_state(STATE_CONNECTED, this); }
-    
-    bool grasp_uuid_found = false;
-//    std::array<16, >
-    /*
-    unsigned char my_grasp_uuid[16] { grasp_service_uuid };
-    const uint8array  grasp_uuid{ 16, std::reverse(grasp_service_uuid) };
-
-    void handle_event(const ble_msg_connection_disconnected_evt_t *e)   { LEV(set_state(STATE_INIT); process (&start_event));  }
-    void handle_event(const ble_msg_attclient_group_found_evt_t *e)     { std::cout << "\tuuid:\t" << get_uuid_str(e->uuid) << "\n\tGrasp uuid:\t" << get_uuid_str(grasp_service_uuid) << std::endl;  
-        grasp_uuid_found = grasp_uuid_found || are_uuids_equal(e->uuid, grasp_service_uuid); }
-    void handle_event(const ble_msg_attclient_procedure_completed_evt_t *e)  { std::cout << "grasp uuid " << (grasp_uuid_found? "found" : "not found") << std::endl; }
-    */
-} state_connected;
-
-
-
-
-
-BaseState* BaseState::cur_state = &state_init;
+ACTION(STATE_CONNECTED, ble_msg_attclient_procedure_completed_evt_t, e) 
+{ std::cout << "grasp uuid " << (grasp_uuid_found ? "found" : "not found") << std::endl; }
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------//
-#define EVENT(callback, event_struct)  void callback (const struct event_struct *msg) { \
-    PRN( event_struct );\
-    BaseState::process(msg);  }
-
 EVENT(ble_rsp_gap_end_procedure,                ble_msg_gap_end_procedure_rsp_t);
 EVENT(ble_evt_connection_status,                ble_msg_connection_status_evt_t);
 EVENT(ble_evt_connection_disconnected,          ble_msg_connection_disconnected_evt_t);
@@ -223,7 +193,7 @@ int main(int argc, char *argv[] )
 
     serial_port.RestartInit(argv[1], []() { ble_cmd_system_reset(0); });
 
-    BaseState::start();
+    StateMachine::start();
 
     for (; ; )
     {
@@ -239,6 +209,3 @@ int main(int argc, char *argv[] )
     }
     return 0;
 }
-
-
-
