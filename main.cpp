@@ -59,10 +59,16 @@ service_uuid_t grasp_service_uuid  ({ 0xA5, 0x8F, 0xCF, 0xAE, 0xDB, 0x61, 0x11, 
 service_uuid_t primary_service_uuid({ 0x28, 0x00 });
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------//
 
-void print_bd_addr(const bd_addr &a)
+std::string bd_addr_to_string(const bd_addr &a)
 {
+    std::string  addr_str;
     for (int i = 5; i >= 0; i--)
-        printf("%02x%s", a.addr[i], i?":":"\n");
+    {
+        char b[4];
+        sprintf(b, "%02x%s", a.addr[i], i ? ":" : "\n");
+        addr_str += b;
+    }
+    return addr_str;
 }
 
 
@@ -82,24 +88,6 @@ std::string get_device_name_from_scan_response(const ble_msg_gap_scan_response_e
         i += len - 1;
     }
     return std::string();
-}
-
-std::string get_uuid_str(const uint8array &uuid)
-{
-    std::string uuid_str;
-    if (uuid.len)
-        for (const unsigned char *p = uuid.data + uuid.len - 1; p >= uuid.data; p--)
-        {
-            char b[3];
-            sprintf(b, "%02X", (unsigned)*p);
-            uuid_str += b;
-        }
-    return uuid_str;    
-}
-
-bool are_uuids_equal(const uint8array &u, const uint8array &v)
-{
-    return u.len == v.len && 0 == memcmp(u.data, v.data, u.len);
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -123,8 +111,7 @@ ACTION(sm, STATE_INIT, ble_msg_gap_discover_rsp_t, e)               {
 
 ACTION(sm, STATE_DISCOVERING, ble_msg_gap_scan_response_evt_t, e)   {
     remote_device_addr = e->sender;
-    print_bd_addr(remote_device_addr);
-    std::cout << (int)e->rssi << "\t" << get_device_name_from_scan_response(e) << std::endl;
+    std::cout << bd_addr_to_string(remote_device_addr) << "\t" << (int)e->rssi << "\t" << get_device_name_from_scan_response(e) << std::endl;
     LOG(ble_cmd_gap_end_procedure());
 }
 
@@ -144,7 +131,7 @@ ACTION(sm, STATE_CONNECTING, ble_msg_connection_status_evt_t, e)    {
 
     remote_device_addr = e->address;
     connection_handle = e->connection;
-    print_bd_addr(remote_device_addr);
+    std::cout << bd_addr_to_string(remote_device_addr) << std::endl;
     LOG(ble_cmd_attclient_read_by_group_type(connection_handle, 0x0001, 0xffff, 2, &primary_service_uuid.uuid_reversed.front() ));
 }
 
