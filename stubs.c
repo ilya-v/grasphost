@@ -416,10 +416,11 @@ void ble_rsp_attclient_find_information(const struct ble_msg_attclient_find_info
 void ble_rsp_attclient_read_by_handle(const struct ble_msg_attclient_read_by_handle_rsp_t *msg)
 {
 }
-
+/*
 void ble_rsp_attclient_attribute_write(const struct ble_msg_attclient_attribute_write_rsp_t *msg)
 {
 }
+*/
 
 void ble_rsp_sm_encrypt_start(const struct ble_msg_sm_encrypt_start_rsp_t *msg)
 {

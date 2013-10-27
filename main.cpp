@@ -57,7 +57,7 @@ struct ble_uuid_t
 ble_uuid_t grasp_service_uuid       ({ 0xA5, 0x8F, 0xCF, 0xAE, 0xDB, 0x61, 0x11, 0xE2, 0xB9, 0xB0, 0xF2, 0x3C, 0x91, 0xAE, 0xC0, 0x5A }) ;
 ble_uuid_t primary_service_uuid     ({ 0x28, 0x00 });
 ble_uuid_t scan_result_char_uuid    ({ 0x33, 0x22, 0xF2, 0x4A, 0xDB, 0x73, 0x11, 0xE2, 0xB9, 0xB0, 0xF2, 0x3C, 0x91, 0xAE, 0xC0, 0x53 });
-
+ble_uuid_t client_char_config_uuid  ({ 0x29, 0x02 });
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------//
 
 std::string bd_addr_to_string(const bd_addr &a)
@@ -196,17 +196,34 @@ SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_attclient_find_information_found
 
 SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_attclient_procedure_completed_evt_t, e)  {
     std::cout << "*** \tCharacteristics search finished" << std::endl;
-    std::cout << "*** \tScan result char with uuid " << scan_result_char_uuid.to_string() << (chars_found.count(scan_result_char_uuid)? " found" : " not found") << std::endl;
-    sm.set_state(chars_found.count(scan_result_char_uuid) ? STATE_MONITORING : STATE_INIT);
+    std::cout << "*** \tScan result char with uuid "    << scan_result_char_uuid   .to_string() << (chars_found.count(scan_result_char_uuid  )? " found" : " not found") << std::endl;
+    std::cout << "*** \tClient config char with uuid "  << client_char_config_uuid .to_string() << (chars_found.count(client_char_config_uuid)? " found" : " not found") << std::endl;
+
+    if (!chars_found.count(scan_result_char_uuid) || !chars_found.count(client_char_config_uuid))
+    {
+        sm.start();
+        return;
+    }
     
+    uint8_t notification_config[] = { 0x01, 0x00 };
+    ble_cmd_attclient_attribute_write(e->connection, chars_found[client_char_config_uuid], 2, notification_config);
+}
+
+SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_attclient_attribute_write_rsp_t, e)  {
+    ENSURE(e->result == 0, "Cannot write config attribute");
+    sm.set_state(STATE_MONITORING);
 }
 
 SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_attclient_find_information_rsp_t, e)  {
     std::cout << "*** \tWhy ble_msg_attclient_find_information_rsp_t in STATE_ATTRIB_INFO_SEARCH?!" << std::endl;
-    ENSURE(e->result, "Error message from the module; check arguments for attclient_find_info")
+    ENSURE(e->result == 0, "Error message from the module; check arguments for attclient_find_info");
 }
 
 SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_connection_disconnected_evt_t, e){ LOG(sm.start();); }
+
+SM_ACTION(sm, STATE_MONITORING, ble_msg_attclient_procedure_completed_evt_t, e)  {
+    ENSURE(e->result == 0, "Cannot write config attribute");
+}
 
 SM_ACTION(sm, STATE_MONITORING, ble_msg_attclient_attribute_value_evt_t, e)
 {
@@ -230,6 +247,7 @@ SM_EVENT(sm, ble_evt_attclient_procedure_completed,     ble_msg_attclient_proced
 SM_EVENT(sm, ble_rsp_attclient_find_information,        ble_msg_attclient_find_information_rsp_t            );
 SM_EVENT(sm, ble_evt_attclient_find_information_found,  ble_msg_attclient_find_information_found_evt_t      );
 SM_EVENT(sm, ble_evt_attclient_attribute_value,         ble_msg_attclient_attribute_value_evt_t             );
+SM_EVENT(sm, ble_rsp_attclient_attribute_write,         ble_msg_attclient_attribute_write_rsp_t             );
 
 
 
