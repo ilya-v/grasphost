@@ -3,12 +3,12 @@
 #include <cstdint>
 #include <windows.h>
 
-#include <functional>
 #include <iostream>
+#include <iomanip>
 #include <vector>
 #include <set>
+#include <map>
 #include <string>
-#include <array>
 #include <algorithm>
 
 #pragma warning( disable : 4200 )
@@ -211,6 +211,7 @@ SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_attclient_procedure_completed_ev
 
 SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_attclient_attribute_write_rsp_t, e)  {
     ENSURE(e->result == 0, "Cannot write config attribute");
+    std::clog.setstate(std::ios_base::badbit);
     sm.set_state(STATE_MONITORING);
 }
 
@@ -221,13 +222,13 @@ SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_attclient_find_information_rsp_t
 
 SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_connection_disconnected_evt_t, e){ LOG(sm.start();); }
 
-SM_ACTION(sm, STATE_MONITORING, ble_msg_attclient_procedure_completed_evt_t, e)  {
-    ENSURE(e->result == 0, "Cannot write config attribute");
-}
+SM_ACTION(sm, STATE_MONITORING, ble_msg_attclient_procedure_completed_evt_t,  e)  {  ENSURE(e->result == 0, "Cannot write config attribute");    }
 
 SM_ACTION(sm, STATE_MONITORING, ble_msg_attclient_attribute_value_evt_t, e)
 {
-
+    std::cout << "*** \t" << std::setfill('0');
+    std::for_each(e->value.data, e->value.data + e->value.len, [](uint8_t b) { std::cout << std::hex << std::setw(2) << (unsigned)b << "."; });
+    std::cout << std::setfill(' ') << std::dec << std::endl;
 }
 
 SM_ACTION(sm, STATE_MONITORING, ble_msg_connection_disconnected_evt_t, e){ LOG(sm.start();); }
