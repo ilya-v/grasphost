@@ -5,6 +5,7 @@
 #include <windows.h>
 
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 #include <vector>
 #include <array>
@@ -22,10 +23,13 @@
 #define LOG(cmd) do { std::clog << "\t" << __LINE__ << ": " << #cmd << std::endl; cmd; } while(0);
 
 #define ENSURE(cmd, err)  do { if (!(cmd)) { \
-    std::cout << "ERROR in line " << __LINE__ << "\t" << (err) << std::endl; throw BaseException(); } } while (0);
+    std::cerr << "ERROR in line " << __LINE__ << "\t" << (err) << std::endl; throw BaseException(); } } while (0);
 
 struct BaseException {};
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------//
+
+//uint16_t swab16(const uint16_t x) { return ((x & 0x00FF) << 8) | (x >> 8);  }
+
 
 struct ble_uuid_t
 {
@@ -114,6 +118,8 @@ namespace
     std::map<ble_uuid_t, uint16_t>      chars_found;
     bd_addr                             remote_device_addr;
     uint8_t                             connection_handle       = 0;
+
+    std::ofstream  flog("log.txt");
 
     SM_DEFINE_WITH_STATES(sm, 
         STATE_INIT, STATE_DISCOVERING, STATE_CONNECTING, STATE_CONNECTED, STATE_ATTRIB_INFO_SEARCH, STATE_MONITORING);
@@ -230,9 +236,11 @@ SM_ACTION(sm, STATE_MONITORING, ble_msg_attclient_attribute_value_evt_t, e)
 {
     std::cout << "*** \t" << std::setfill('0');
     const uint8_t *d = e->value.data;
-    for (auto x : const std::array<unsigned, 4>({ d[2], d[0], d[4], d[3] }))
-        std::cout << std::hex << std::setw(2) << (unsigned)x << ".";
+    for (auto x : const std::array<unsigned, 5>({ d[0], d[1], d[2], d[3], d[4] }))
+        std::cout << std::hex << std::setw(2) << (unsigned)x << ".";        
     std::cout << std::setfill(' ') << std::dec << "\t" << clock() << "\t" <<  CLOCKS_PER_SEC << std::endl;
+
+    flog << (unsigned)d[0] << "," << (unsigned)d[1] << "," << (unsigned)d[2] << "," << (unsigned)d[3] << "," <<(unsigned)d[4] << std::endl;
 }
 
 SM_ACTION(sm, STATE_MONITORING, ble_msg_connection_disconnected_evt_t, e){ LOG(sm.start();); }

@@ -1,7 +1,7 @@
+
+@echo off
 :a
-@cls
-@cd %~dp0
-@call build
-@call .\grasphost.exe com20
-@pause
-@goto :a
+cls 
+call X:\sw\grasphost\vs-proj\Debug\grasphost.exe com20
+pause
+goto a
