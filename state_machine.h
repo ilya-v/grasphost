@@ -7,6 +7,9 @@
 #include <iostream>
 #include <memory>
 
+struct ActionBase;
+template <typename TEvent> struct Action;
+
 class StateMachine
 {
     friend struct ActionBase;
@@ -80,7 +83,7 @@ template <typename TEvent> struct Action : public ActionBase
     void SM_HANDLER_FUNC_NAME(state, TEvent, e)(const TEvent *); \
 struct SM_ACTION_TYPE(state, TEvent, e) : public Action<TEvent>{ \
     SM_ACTION_TYPE(state, TEvent, e)() : Action<TEvent>(state_machine, state, SM_HANDLER_FUNC_NAME(state, TEvent, e)) {} \
-} action_##state##__##TEvent##__##e##; \
+} action_##state##__##TEvent##__##e; \
     void SM_HANDLER_FUNC_NAME(state, TEvent, e)(const TEvent *e)
 
 

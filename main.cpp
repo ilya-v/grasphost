@@ -39,7 +39,7 @@ struct ble_uuid_t
     { std::reverse_copy(uuid.cbegin(), uuid.cend(), uuid_reversed.begin()); }
 
     ble_uuid_t(const unsigned char uuid_arr_reversed[], const unsigned len)
-        : uuid_reversed(uuid_arr_reversed, uuid_arr_reversed + len), uuid(len)
+        : uuid(len), uuid_reversed(uuid_arr_reversed, uuid_arr_reversed + len)
     { std::reverse_copy(uuid_reversed.cbegin(), uuid_reversed.cend(), uuid.begin()); }
 
      std::string to_string() const
@@ -236,7 +236,7 @@ SM_ACTION(sm, STATE_MONITORING, ble_msg_attclient_attribute_value_evt_t, e)
 {
     std::cout << "*** \t" << std::setfill('0');
     const uint8_t *d = e->value.data;
-    for (auto x : const std::array<unsigned, 5>({ d[0], d[1], d[2], d[3], d[4] }))
+    for (auto x :  std::array<unsigned, 5>({ d[0], d[1], d[2], d[3], d[4] }))
         std::cout << std::hex << std::setw(2) << (unsigned)x << ".";        
     std::cout << std::setfill(' ') << std::dec << "\t" << clock() << "\t" <<  CLOCKS_PER_SEC << std::endl;
 

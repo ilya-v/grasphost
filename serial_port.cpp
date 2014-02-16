@@ -1,5 +1,6 @@
 #include "serial_port.h"
 #include <cstdint>
+#include <cstdio>
 #include <iostream>
 #include <functional>
 
