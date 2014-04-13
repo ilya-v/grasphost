@@ -1,3 +1,5 @@
+#define _CRT_SECURE_NO_WARNINGS 1
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstdint>
@@ -26,6 +28,14 @@
     std::cerr << "ERROR in line " << __LINE__ << "\t" << (err) << std::endl; throw BaseException(); } } while (0);
 
 struct BaseException {};
+//-----------------------------------------------------------------------------------------------------------------------------------------------------------//
+
+std::function<void(const uint8_t levels[5])> on_kbd_data_f = [](const uint8_t levels[5]) {};
+
+void process_key_press_event(std::array<unsigned, 5> keycodes, std::array<unsigned, 5> thresholds, const uint8_t levels[5])
+{
+}
+
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------//
 
 //uint16_t swab16(const uint16_t x) { return ((x & 0x00FF) << 8) | (x >> 8);  }
@@ -238,6 +248,7 @@ SM_ACTION(sm, STATE_MONITORING, ble_msg_attclient_procedure_completed_evt_t,  e)
 
 SM_ACTION(sm, STATE_MONITORING, ble_msg_attclient_attribute_value_evt_t, e)
 {
+    on_kbd_data_f(e->value.data);
     std::cout << "*** \t" << std::setfill('0');
     const uint8_t *d = e->value.data;
     for (auto x :  std::array<unsigned, 5>({ d[0], d[1], d[2], d[3], d[4] }))
@@ -280,6 +291,30 @@ int main(int argc, char *argv[] )
     };
 
     serial_port.RestartInit(argv[1], []() { ble_cmd_system_reset(0); });
+
+    std::string config_file_name = std::string(argv[0]);
+    {
+        auto idx_extension = config_file_name.rfind(".exe");
+        if (idx_extension != std::string::npos)
+            config_file_name.erase(idx_extension);
+        config_file_name += ".ini";
+    }
+
+    {
+        int nscanned = 0;
+        std::array<unsigned, 5> keycodes = {};
+        std::array<unsigned, 5> thresholds = {};
+        if (FILE *fconfig = fopen(config_file_name.c_str(), "r"))
+        {
+            for (auto i = 0; i < 5; i++)
+                nscanned += fscanf(fconfig, "%x%x", &keycodes[i], &thresholds[i]);
+            fclose(fconfig);
+        }
+
+        if (nscanned == keycodes.size())
+            on_kbd_data_f = [=](const uint8_t levels[5]) { process_key_press_event(keycodes, thresholds, levels); };
+
+    }
 
     sm.start();
 
