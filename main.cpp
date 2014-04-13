@@ -32,8 +32,30 @@ struct BaseException {};
 
 std::function<void(const uint8_t levels[5])> on_kbd_data_f = [](const uint8_t levels[5]) {};
 
+std::array<bool, 5> key_states = {};
+
 void process_key_press_event(std::array<unsigned, 5> keycodes, std::array<unsigned, 5> thresholds, const uint8_t levels[5])
 {
+    for (auto i = 0u; i < thresholds.size(); ++i)
+    {
+        INPUT input = {};
+        input.type = INPUT_KEYBOARD;
+        input.ki.wVk = keycodes[i];
+        if (!key_states[i] && levels[i] < thresholds[i])
+        {
+            key_states[i] = true;    
+            SendInput(1, &input, sizeof(input));
+        }
+        else  if (key_states[i] && levels[i] >= thresholds[i])
+        {
+            key_states[i] = false;
+            input.ki.dwFlags = KEYEVENTF_KEYUP;
+            SendInput(1, &input, sizeof(input));
+        }
+        
+    }
+   
+
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------//
