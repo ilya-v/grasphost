@@ -311,7 +311,7 @@ int main(int argc, char *argv[] )
         serial_port.Write(data2, len2);
     };
 
-    serial_port.RestartInit(port_name.c_str(), []() { ble_cmd_system_reset(0); Sleep(1000); });
+    serial_port.RestartInit(port_name.c_str(), []() { /*ble_cmd_system_reset(0); Sleep(5000);*/ });
 
     std::string config_file_name = std::string(argv[0]);
     {
@@ -333,7 +333,7 @@ int main(int argc, char *argv[] )
             fclose(fconfig);
         }
 
-        if (nscanned == keycodes.size())
+        if (nscanned == keycodes.size()*2)
         {
             on_kbd_data_f = [=](const uint8_t levels[5]) { process_key_press_event(keycodes, thresholds, levels); };
             std::cout << "Using the config from " << config_file_name << std::endl;
