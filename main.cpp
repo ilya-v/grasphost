@@ -281,16 +281,37 @@ SM_EVENT(sm, ble_rsp_attclient_attribute_write,         ble_msg_attclient_attrib
 
 int main(int argc, char *argv[] )
 {    
-    if ( argc < 2 ) exit(-1);
+    std::string port_name;
+    
+    if (argc < 2) {
+        auto serial_port_names = ScanSerialPorts();
+        std::cout << "Available COM ports:" << std::endl;
+        for (auto &n : serial_port_names)
+             std::cout << "\t" << n << std::endl;
+        std::cout << "." << std::endl;
+        if (serial_port_names.empty())
+        {
+            std::cout << "No available COM ports found. Press Enter." << std::endl;
+            getc(stdin);
+            return 1;
+        }
+        if (serial_port_names.size() == 1)
+            port_name = serial_port_names.front();
+    }
+    else {
+        port_name = std::string(argv[2]);
+    }
+
+    std::cout << "Using serial port " << port_name << std::endl;
 
     static SerialPort  serial_port;
 
-    bglib_output =  [](uint8_t len1, uint8_t* data1, uint16_t len2, uint8_t* data2)  {
+    bglib_output = [](uint8_t len1, uint8_t* data1, uint16_t len2, uint8_t* data2)  {
         serial_port.Write(data1, len1);
         serial_port.Write(data2, len2);
     };
 
-    serial_port.RestartInit(argv[1], []() { ble_cmd_system_reset(0); });
+    serial_port.RestartInit(port_name.c_str(), []() { ble_cmd_system_reset(0); Sleep(1000); });
 
     std::string config_file_name = std::string(argv[0]);
     {
@@ -306,14 +327,17 @@ int main(int argc, char *argv[] )
         std::array<unsigned, 5> thresholds = {};
         if (FILE *fconfig = fopen(config_file_name.c_str(), "r"))
         {
+            std::cout << "Config file found" << std::endl;
             for (auto i = 0; i < 5; i++)
-                nscanned += fscanf(fconfig, "%x%x", &keycodes[i], &thresholds[i]);
+                nscanned += fscanf(fconfig, "%x%d", &keycodes[i], &thresholds[i]);
             fclose(fconfig);
         }
 
         if (nscanned == keycodes.size())
+        {
             on_kbd_data_f = [=](const uint8_t levels[5]) { process_key_press_event(keycodes, thresholds, levels); };
-
+            std::cout << "Using the config from " << config_file_name << std::endl;
+        }           
     }
 
     sm.start();

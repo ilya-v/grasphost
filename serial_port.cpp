@@ -5,6 +5,7 @@
 #include <functional>
 #include <string>
 #include <sstream>
+#include <vector>
 
 
 #define ENSURE(cmd, err) \
@@ -13,6 +14,26 @@
         throw SerialPort::Exception(); } \
     } while (0);
 
+HANDLE CreateSerialPort(const std::string &serial_port_id)
+{
+    const auto serial_port_name = std::string("\\\\.\\") + serial_port_id;
+    return ::CreateFileA(serial_port_name.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+}
+
+std::vector<std::string> ScanSerialPorts()
+{
+    std::vector<std::string> port_names;
+    for (auto i = 1; i < 100; i++) {
+        const auto  port_name = std::string("COM") + std::to_string(i);
+        auto h = CreateSerialPort(port_name);
+        if (h != INVALID_HANDLE_VALUE)
+            port_names.push_back(port_name);
+        ::CloseHandle(h);
+    }
+    return port_names;   
+       
+}
+
 HANDLE SerialPort :: PersistentOpen(const char *port_name_arg)
 {
     std::string serial_port_name = std::string("\\\\.\\") + port_name_arg;
@@ -20,7 +41,7 @@ HANDLE SerialPort :: PersistentOpen(const char *port_name_arg)
     for (int attempt_count = 20; attempt_count > 0 && serial_handle == INVALID_HANDLE_VALUE; attempt_count--)
     {
         ::Sleep(500);
-        serial_handle = ::CreateFileA(serial_port_name.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        serial_handle = CreateSerialPort(port_name_arg);
     }
     return  serial_handle;
 }
@@ -32,7 +53,7 @@ void  SerialPort::RestartInit(const char *port_name, std::function<void()> f_res
     f_restart();
     this->Close();
     myHandle = PersistentOpen(port_name);
-        ENSURE(myHandle != INVALID_HANDLE_VALUE, "Error opening serial port");
+    ENSURE(myHandle != INVALID_HANDLE_VALUE, "Error opening serial port");
 }
 
 

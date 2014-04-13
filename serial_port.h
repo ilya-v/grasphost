@@ -3,6 +3,9 @@
 
 #include <windows.h>
 #include <functional>
+#include <vector>
+
+std::vector<std::string> ScanSerialPorts();
 
 struct SerialPort
 {
