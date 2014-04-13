@@ -3,6 +3,8 @@
 #include <cstdio>
 #include <iostream>
 #include <functional>
+#include <string>
+#include <sstream>
 
 
 #define ENSURE(cmd, err) \
@@ -11,18 +13,14 @@
         throw SerialPort::Exception(); } \
     } while (0);
 
-
-
 HANDLE SerialPort :: PersistentOpen(const char *port_name_arg)
 {
-    char serial_port_name[80];
+    std::string serial_port_name = std::string("\\\\.\\") + port_name_arg;
     HANDLE serial_handle = INVALID_HANDLE_VALUE;
-    sprintf(serial_port_name, "\\\\.\\%s", port_name_arg);
-
     for (int attempt_count = 20; attempt_count > 0 && serial_handle == INVALID_HANDLE_VALUE; attempt_count--)
     {
         ::Sleep(500);
-        serial_handle = ::CreateFileA(serial_port_name, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        serial_handle = ::CreateFileA(serial_port_name.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     }
     return  serial_handle;
 }
@@ -43,8 +41,9 @@ void SerialPort :: Close()    {   CloseHandle(myHandle);  }
 
 void SerialPort::Write(const unsigned char * data, const unsigned size)
 {
+    if (!size)      return;
     DWORD written;
-    ENSURE(WriteFile(myHandle, data, size, &written, NULL), "Cannot wrtie to the serial port");
+    ENSURE(WriteFile(myHandle, data, size, &written, NULL), std::string("Cannot wrtie to the serial port "));
 }
 
 

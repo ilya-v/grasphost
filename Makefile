@@ -22,10 +22,10 @@ DEPS := $(SRCS:.c=.d)  $(SRCSCPP:.cpp=.d)
 all: $(TARGET)
 
 %.o: %.c
-	$(CC) -O3 -Wall -c  -static  -static-libgcc -static-libstdc++ -fmessage-length=0 -DPLATFORM_$(PLATFORM) -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o"$@" "$<"
+	$(CC) -O3 -Wall -c  -static  -static-libgcc -static-libstdc++  -mno-ms-bitfields -fmessage-length=0 -DPLATFORM_$(PLATFORM) -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o"$@" "$<"
     
 %.o: %.cpp
-	$(CC) -O3 -Wall -c -static  -static-libgcc -static-libstdc++ -std=c++11  -fmessage-length=0 -DPLATFORM_$(PLATFORM) -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o"$@" "$<"
+	$(CC) -O3 -Wall -c -static  -static-libgcc -static-libstdc++ -mno-ms-bitfields -std=c++11   -fmessage-length=0 -DPLATFORM_$(PLATFORM) -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o"$@" "$<"
 
 $(TARGET): $(OBJS)
 	@echo 'Building target: $@'
