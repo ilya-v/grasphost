@@ -125,7 +125,7 @@ namespace
         STATE_INIT, STATE_DISCOVERING, STATE_CONNECTING, STATE_CONNECTED, STATE_ATTRIB_INFO_SEARCH, STATE_MONITORING);
 };
 
-SM_ACTION(sm, STATE_INIT, StateMachine_StartEvent, e)                  { LOG(ble_cmd_gap_end_procedure()); /*stop prev op*/ }
+SM_ACTION(sm, STATE_INIT, StateMachine_StartEvent, e)                  { LOG(ble_cmd_gap_end_procedure()); /*stop prev op*/ Sleep(500); }
 SM_ACTION(sm, STATE_INIT, ble_msg_gap_end_procedure_rsp_t, e)          { LOG(ble_cmd_gap_discover(gap_discover_observation)); }
 SM_ACTION(sm, STATE_INIT, ble_msg_gap_discover_rsp_t, e)               {
     ENSURE(e->result == 0, "Cannot start the Discover procedure");  
@@ -165,11 +165,15 @@ SM_ACTION(sm, STATE_CONNECTING, ble_msg_connection_status_evt_t, e)    {
     remote_device_addr = e->address;
     connection_handle = e->connection;
     std::cout << "*** \tChecking the  device " << bd_addr_to_string(remote_device_addr) << "for the primary service" << std::endl;
+    std::cout << "h" << (int)connection_handle << " sz" << primary_service_uuid.size() << " bt" << (unsigned)primary_service_uuid.get_reversed_bytes()[0] << "." << (unsigned)primary_service_uuid.get_reversed_bytes()[1] << std::endl;
     LOG(ble_cmd_attclient_read_by_group_type(connection_handle, 0x0001, 0xffff, primary_service_uuid.size(), primary_service_uuid.get_reversed_bytes() ));
 }
 
 SM_ACTION(sm, STATE_CONNECTING, ble_msg_attclient_read_by_group_type_rsp_t, e) {
+    std::cout << "e" << sizeof(*e) << " " << ((char*)&e->result - (char*)e) << " " << *(uint32_t*)e << std::endl;
+
     ENSURE(e->result == 0, "Cannot start service discovery");
+    std::cout << e->result << " : "  << (int)e->connection << " : sz " << sizeof(e) << std::endl;
     sm.set_state(STATE_CONNECTED);
 }
 
@@ -177,7 +181,7 @@ SM_ACTION(sm, STATE_CONNECTED, ble_msg_connection_disconnected_evt_t, e){ LOG(sm
 
 SM_ACTION(sm, STATE_CONNECTED, ble_msg_attclient_group_found_evt_t, e) {
     ble_uuid_t  found_uuid(e->uuid.data, e->uuid.len); 
-    std::cout   <<   "***\tFround uuid:\t" << found_uuid.to_string() 
+    std::cout   <<   "***\tFound uuid:\t"  << found_uuid.to_string() 
                 << "\n***\tGrasp  uuid:\t" << grasp_service_uuid.to_string() << std::endl;
     services_found [found_uuid] = char_group_t{ e->start, e->end };
 }
