@@ -321,7 +321,7 @@ int main(int argc, char *argv[] )
             port_name = serial_port_names.front();
     }
     else {
-        port_name = std::string(argv[2]);
+        port_name = std::string(argv[1]);
     }
 
     std::cout << "Using serial port " << port_name << std::endl;
