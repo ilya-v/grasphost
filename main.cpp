@@ -1,4 +1,6 @@
-#define _CRT_SECURE_NO_WARNINGS 1
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 
 #include <cstdio>
 #include <cstdlib>
@@ -21,6 +23,7 @@
 #include "cmd_def.h"
 #include "serial_port.h"
 #include "state_machine.h"
+#include "server.h"
 
 #define LOG(cmd) do { std::clog << "\t" << __LINE__ << ": " << #cmd << std::endl; cmd; } while(0);
 
@@ -150,6 +153,7 @@ namespace
     std::map<ble_uuid_t, uint16_t>      chars_found;
     bd_addr                             remote_device_addr;
     uint8_t                             connection_handle       = 0;
+    DataServer                          data_server;
 
     std::ofstream  flog("log.txt");
 
@@ -273,11 +277,17 @@ SM_ACTION(sm, STATE_MONITORING, ble_msg_attclient_attribute_value_evt_t, e)
     on_kbd_data_f(e->value.data);
     std::cout << "*** \t" << std::setfill('0');
     const uint8_t *d = e->value.data;
-    for (auto x :  std::array<unsigned, 5>({ d[0], d[1], d[2], d[3], d[4] }))
-        std::cout << std::hex << std::setw(2) << (unsigned)x << ".";        
-    std::cout << std::setfill(' ') << std::dec << "\t" << clock() << "\t" <<  CLOCKS_PER_SEC << std::endl;
+    std::string data_str;
+    for (auto x : std::array<unsigned, 5>({ d[0], d[1], d[2], d[3], d[4] })) {
+        std::cout << std::hex << std::setw(2) << (unsigned)x << ".";
+        data_str += std::to_string(x) + " ";
+    }
+    auto ticks = clock();
+    std::cout << std::setfill(' ') << std::dec << "\t" << ticks << "\t" << CLOCKS_PER_SEC << std::endl;
+    data_str += std::to_string(ticks);
 
-    flog << (unsigned)d[0] << "," << (unsigned)d[1] << "," << (unsigned)d[2] << "," << (unsigned)d[3] << "," <<(unsigned)d[4] << std::endl;
+    flog << data_str << std::endl;
+    data_server.SendData(data_str + "\n");
 }
 
 SM_ACTION(sm, STATE_MONITORING, ble_msg_connection_disconnected_evt_t, e){ LOG(sm.start();); }
