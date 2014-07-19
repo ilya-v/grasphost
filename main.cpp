@@ -17,6 +17,7 @@
 #include <map>
 #include <string>
 #include <algorithm>
+#include <sstream>
 
 #pragma warning( disable : 4200 )
 
@@ -24,47 +25,32 @@
 #include "serial_port.h"
 #include "state_machine.h"
 #include "server.h"
+#include "key_filter.h"
+#include "config_monitor.h"
 
 #define LOG(cmd) do { std::clog << "\t" << __LINE__ << ": " << #cmd << std::endl; cmd; } while(0);
 
 #define ENSURE(cmd, err)  do { if (!(cmd)) { \
     std::cerr << "ERROR in line " << __LINE__ << "\t" << (err) << std::endl; throw BaseException(); } } while (0);
 
+template <typename T>    
+std::string to_string(const T x) {
+    return  dynamic_cast<std::stringstream &>(std::stringstream() << x).str();
+}
+
 struct BaseException {};
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------//
 
-std::function<void(const uint8_t levels[5])> on_kbd_data_f = [](const uint8_t levels[5]) {};
+std::array<unsigned, 10>  default_filtering_f(const uint8_t levels[5]) {
+    std::array<unsigned, 10>  filtered_levels{};
+    std::transform(levels, levels + 5, filtered_levels.begin(), [](const uint8_t l){ return 0x7F - l; });
+    return filtered_levels;
+};
 
-std::array<bool, 5> key_states = {};
-
-void process_key_press_event(std::array<unsigned, 5> keycodes, std::array<unsigned, 5> thresholds, const uint8_t levels[5])
-{
-    for (auto i = 0u; i < thresholds.size(); ++i)
-    {
-        INPUT input = {};
-        input.type = INPUT_KEYBOARD;
-        input.ki.wVk = keycodes[i];
-        if (!key_states[i] && levels[i] < thresholds[i])
-        {
-            key_states[i] = true;    
-            SendInput(1, &input, sizeof(input));
-        }
-        else  if (key_states[i] && levels[i] >= thresholds[i])
-        {
-            key_states[i] = false;
-            input.ki.dwFlags = KEYEVENTF_KEYUP;
-            SendInput(1, &input, sizeof(input));
-        }
-        
-    }
-   
-
-}
-
+std::function<decltype(default_filtering_f)> on_kbd_data_f = default_filtering_f;
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------//
 
 //uint16_t swab16(const uint16_t x) { return ((x & 0x00FF) << 8) | (x >> 8);  }
-
 
 struct ble_uuid_t
 {
@@ -168,6 +154,7 @@ SM_ACTION(sm, STATE_INIT, ble_msg_gap_discover_rsp_t, e)               {
     checked_devices.clear();
     sm.set_state(STATE_DISCOVERING); }
 
+SM_ACTION(sm, STATE_INIT, ble_msg_attclient_attribute_value_evt_t, e)  { LOG(sm.start();); }
 
 SM_ACTION(sm, STATE_DISCOVERING, ble_msg_gap_scan_response_evt_t, e)   {
     std::cout << "*** \t" << bd_addr_to_string(e->sender) << "\t" << (int)e->rssi << "\t" << get_device_name_from_scan_response(e);
@@ -274,18 +261,20 @@ SM_ACTION(sm, STATE_MONITORING, ble_msg_attclient_procedure_completed_evt_t,  e)
 
 SM_ACTION(sm, STATE_MONITORING, ble_msg_attclient_attribute_value_evt_t, e)
 {
-    on_kbd_data_f(e->value.data);
+    std::array<unsigned, 10> filtered_data  =  on_kbd_data_f(e->value.data);
     std::cout << "*** \t" << std::setfill('0');
     const uint8_t *d = e->value.data;
-    std::string data_str;
-    for (auto x : std::array<unsigned, 5>({ d[0], d[1], d[2], d[3], d[4] })) {
+    for (auto x : std::array<unsigned, 5>({ d[0], d[1], d[2], d[3], d[4] }))
         std::cout << std::hex << std::setw(2) << (unsigned)x << ".";
-        data_str += std::to_string(x) + " ";
-    }
+
     auto ticks = clock();
     std::cout << std::setfill(' ') << std::dec << "\t" << ticks << "\t" << CLOCKS_PER_SEC << std::endl;
-    data_str += std::to_string(ticks);
 
+    std::string data_str;
+    for (auto x: filtered_data)
+        data_str += to_string(x) + " ";
+
+    data_str += to_string(ticks);
     flog << data_str << std::endl;
     data_server.SendData(data_str + "\n");
 }
@@ -353,29 +342,21 @@ int main(int argc, char *argv[] )
         config_file_name += ".ini";
     }
 
-    {
-        int nscanned = 0;
-        std::array<unsigned, 5> keycodes = {};
-        std::array<unsigned, 5> thresholds = {};
-        if (FILE *fconfig = fopen(config_file_name.c_str(), "r"))
-        {
-            std::cout << "Config file found" << std::endl;
-            for (auto i = 0; i < 5; i++)
-                nscanned += fscanf(fconfig, "%x%d", &keycodes[i], &thresholds[i]);
-            fclose(fconfig);
-        }
-
-        if (nscanned == keycodes.size()*2)
-        {
-            on_kbd_data_f = [=](const uint8_t levels[5]) { process_key_press_event(keycodes, thresholds, levels); };
-            std::cout << "Using the config from " << config_file_name << std::endl;
-        }           
-    }
-
     sm.start();
 
     for (; ; )
     {
+        bool
+            is_config_parsed = false,
+            is_new_config    = false;
+        std::array<unsigned, 5> keycodes{};
+        std::array<unsigned, 5> thresholds{};
+        std::tie(is_config_parsed, keycodes, thresholds, is_new_config) = get_config(config_file_name);
+        if (is_config_parsed) {
+            on_kbd_data_f = [=](const uint8_t levels[5]) { return process_sensor_levels(keycodes, thresholds, levels); };
+            std::cout << "Using the config from " << config_file_name << std::endl;
+        }
+
         ble_header api_header;
         serial_port.Read( (unsigned char *) &api_header, sizeof(api_header) );
 
