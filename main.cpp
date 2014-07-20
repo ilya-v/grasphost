@@ -147,14 +147,14 @@ namespace
         STATE_INIT, STATE_DISCOVERING, STATE_CONNECTING, STATE_CONNECTED, STATE_ATTRIB_INFO_SEARCH, STATE_MONITORING);
 };
 
-SM_ACTION(sm, STATE_INIT, StateMachine_StartEvent, e)                  { LOG(ble_cmd_gap_end_procedure()); /*stop prev op*/ Sleep(500); }
+SM_ACTION(sm, STATE_INIT, StateMachine_StartEvent, e)                  { LOG(ble_cmd_gap_end_procedure()); /*stop prev op*/ Sleep(300); }
 SM_ACTION(sm, STATE_INIT, ble_msg_gap_end_procedure_rsp_t, e)          { LOG(ble_cmd_gap_discover(gap_discover_observation)); }
 SM_ACTION(sm, STATE_INIT, ble_msg_gap_discover_rsp_t, e)               {
     ENSURE(e->result == 0, "Cannot start the Discover procedure");  
     checked_devices.clear();
     sm.set_state(STATE_DISCOVERING); }
 
-SM_ACTION(sm, STATE_INIT, ble_msg_attclient_attribute_value_evt_t, e)  { LOG(sm.start();); }
+SM_ACTION(sm, STATE_INIT, ble_msg_attclient_attribute_value_evt_t, e)  { sm.set_state(STATE_MONITORING); }
 
 SM_ACTION(sm, STATE_DISCOVERING, ble_msg_gap_scan_response_evt_t, e)   {
     std::cout << "*** \t" << bd_addr_to_string(e->sender) << "\t" << (int)e->rssi << "\t" << get_device_name_from_scan_response(e);
@@ -281,6 +281,8 @@ SM_ACTION(sm, STATE_MONITORING, ble_msg_attclient_attribute_value_evt_t, e)
 }
 
 SM_ACTION(sm, STATE_MONITORING, ble_msg_connection_disconnected_evt_t, e){ LOG(sm.start();); }
+SM_ACTION(sm, STATE_MONITORING, ble_msg_gap_end_procedure_rsp_t, e)      {}
+SM_ACTION(sm, STATE_MONITORING, ble_msg_gap_discover_rsp_t, e)      {}
 
 
 //---------------------------------------------------------------------------------------------------------------------------------------//
@@ -347,11 +349,6 @@ int main(int argc, char *argv[] )
 
     for (config_t config; ; )
     {
-        bool
-            is_config_parsed = false,
-            is_new_config    = false;
-        std::array<unsigned, 5> keycodes{};
-        std::array<unsigned, 5> thresholds{};
         const config_t new_config = get_config(config_file_name);
         if (new_config.is_config_set && new_config != config) {
             config = new_config;
@@ -369,5 +366,4 @@ int main(int argc, char *argv[] )
         ENSURE(api_message != nullptr, "Unknown message received");
         api_message->handler(message_data);
     }
-    return 0;
 }

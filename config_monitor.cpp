@@ -24,7 +24,7 @@ config_t  get_config(const std::string & config_file_name)
     if (FILE *fconfig = fopen(config_file_name.c_str(), "r"))
     {
         for (auto i = 0; i < 5; i++)
-            nscanned += fscanf(fconfig, "%x%u%u", &config.key_codes[i], &config.level_thresholds[i], &config.level_thresholds[i]);
+            nscanned += fscanf(fconfig, "%x%u%u", &config.key_codes[i], &config.level_thresholds[i], &config.delta_thresholds[i]);
         fclose(fconfig);
     }
     config.is_config_set = (nscanned == 15);

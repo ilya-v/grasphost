@@ -25,14 +25,17 @@ std::array<unsigned, 10>  process_sensor_levels(const config_t & config, const u
     }
     
     std::array<unsigned, 5>  filtered_levels{};
+    std::array<bool, 5> active_sensors{};
     for (unsigned i = 0; i < 5; i++)
     {
-        if (original_levels[i] > config.level_thresholds[i] && delta_levels[i] > (int)config.delta_thresholds[i])
-            filtered_levels[i] = config.level_thresholds[i];
-    }
-    
+        if (original_levels[i] > config.level_thresholds[i] && delta_levels[i] >(int)config.delta_thresholds[i])
+        {
+            filtered_levels[i] = original_levels[i];
+            active_sensors[i] = true;
+        }            
+    }    
 
-    for (auto i = 0u; i < 5; ++i)
+    for (unsigned i = 0; i < 5; ++i)
     {
         INPUT input = {};
         input.type = INPUT_KEYBOARD;
