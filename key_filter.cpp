@@ -27,7 +27,7 @@ std::array<unsigned, 10>  process_sensor_levels(const config_t & config, const u
     std::array<unsigned, 5>  filtered_levels{};
     for (unsigned i = 0; i < 5; i++)
     {
-        if (original_levels[i] > config.level_thresholds[i] && delta_levels[i] > config.delta_thresholds[i])
+        if (original_levels[i] > config.level_thresholds[i] && delta_levels[i] > (int)config.delta_thresholds[i])
             filtered_levels[i] = config.level_thresholds[i];
     }
     
