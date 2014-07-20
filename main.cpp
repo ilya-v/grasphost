@@ -177,7 +177,8 @@ SM_ACTION(sm, STATE_DISCOVERING, ble_msg_gap_connect_direct_rsp_t, e)  {
     ENSURE(e->result == 0, "Cannot establish a direct connection");
     sm.set_state(STATE_CONNECTING);  }
 
-SM_ACTION(sm, STATE_CONNECTING, ble_msg_connection_disconnected_evt_t, e)  { LOG(sm.start(); ); }
+SM_ACTION(sm, STATE_CONNECTING,  ble_msg_connection_disconnected_evt_t, e)  { LOG(sm.start(); ); }
+//SM_ACTION(sm, STATE_DISCOVERING, ble_msg_connection_disconnected_evt_t, e)  { LOG(sm.start();); }
 
 SM_ACTION(sm, STATE_CONNECTING, ble_msg_connection_status_evt_t, e)    {
     if (!(e->flags & connection_connected))
@@ -344,16 +345,17 @@ int main(int argc, char *argv[] )
 
     sm.start();
 
-    for (; ; )
+    for (config_t config; ; )
     {
         bool
             is_config_parsed = false,
             is_new_config    = false;
         std::array<unsigned, 5> keycodes{};
         std::array<unsigned, 5> thresholds{};
-        std::tie(is_config_parsed, keycodes, thresholds, is_new_config) = get_config(config_file_name);
-        if (is_config_parsed) {
-            on_kbd_data_f = [=](const uint8_t levels[5]) { return process_sensor_levels(keycodes, thresholds, levels); };
+        const config_t new_config = get_config(config_file_name);
+        if (new_config.is_config_set && new_config != config) {
+            config = new_config;
+            on_kbd_data_f = [=](const uint8_t levels[5]) { return process_sensor_levels(config, levels); };
             std::cout << "Using the config from " << config_file_name << std::endl;
         }
 

@@ -3,7 +3,8 @@
 
 #include <array>
 #include <cinttypes>
+#include "config_monitor.h"
 
-std::array<unsigned, 10>  process_sensor_levels(std::array<unsigned, 5> keycodes, std::array<unsigned, 5> thresholds, const uint8_t levels[5]);
+std::array<unsigned, 10>  process_sensor_levels(const config_t & config, const uint8_t levels[5]);
 
 #endif
