@@ -40,12 +40,12 @@ std::array<unsigned, 10>  process_sensor_levels(const config_t & config, const u
         INPUT input = {};
         input.type = INPUT_KEYBOARD;
         input.ki.wVk = config.key_codes[i];
-        if (!key_states[i] && filtered_levels[i] < config.level_thresholds[i])
+        if (!key_states[i] && active_sensors[i])
         {
             key_states[i] = true;
             SendInput(1, &input, sizeof(input));
         }
-        else  if (key_states[i] && filtered_levels[i] >= config.level_thresholds[i])
+        else  if (key_states[i] && !active_sensors[i])
         {
             key_states[i] = false;
             input.ki.dwFlags = KEYEVENTF_KEYUP;

@@ -1,6 +1,11 @@
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include "config_monitor.h"
 #include <chrono>
 #include <tuple>
+#include <cstdio>
 
 namespace {
 
