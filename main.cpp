@@ -247,6 +247,7 @@ SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_attclient_procedure_completed_ev
 
 SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_attclient_attribute_write_rsp_t, e)  {
     ENSURE(e->result == 0, "Cannot write config attribute");
+    std::clog.setstate(std::ios_base::badbit);
     sm.set_state(STATE_MONITORING);
 }
 
