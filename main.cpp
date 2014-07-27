@@ -247,6 +247,7 @@ SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_attclient_procedure_completed_ev
 
 SM_ACTION(sm, STATE_ATTRIB_INFO_SEARCH, ble_msg_attclient_attribute_write_rsp_t, e)  {
     ENSURE(e->result == 0, "Cannot write config attribute");
+    sm.logging_off();
     sm.set_state(STATE_MONITORING);
 }
 
@@ -261,6 +262,8 @@ SM_ACTION(sm, STATE_MONITORING, ble_msg_attclient_procedure_completed_evt_t,  e)
 
 SM_ACTION(sm, STATE_MONITORING, ble_msg_attclient_attribute_value_evt_t, e)
 {
+    sm.logging_off();
+
     std::array<unsigned, 10> filtered_data  =  on_kbd_data_f(e->value.data);
     std::cout << "*** \t" << std::setfill('0');
     const uint8_t *d = e->value.data;

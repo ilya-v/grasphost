@@ -5,9 +5,9 @@ StateMachine::start_event_t StateMachine::start_event;
 
 void StateMachine :: set_state(const state_t  new_state)
 { 
-    std::clog << "\tChanging state from " << get_state_name();
+    *log << "\tChanging state from " << get_state_name();
     current_state = new_state; 
-    std::clog << " to " << get_state_name() << std::endl;
+    *log << " to " << get_state_name() << std::endl;
 }
 
 StateMachine::StateMachine(std::string states)
