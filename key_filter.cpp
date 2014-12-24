@@ -1,5 +1,7 @@
 #include "key_filter.h"
 #include <windows.h>
+#undef max
+#include <algorithm>
 
 namespace
 {
@@ -23,16 +25,39 @@ std::array<unsigned, 10>  process_sensor_levels(const config_t & config, const u
     {
         delta_levels[i] = original_levels[i] - prev_levels[i];
     }
+    prev_levels = original_levels;
+
+    std::array<bool, 5>  suppress{};
+    {
+        const int
+            delta_2 = std::max(delta_levels[2] - (int)config.delta_thresholds[2], 0),
+            delta_3 = std::max(delta_levels[3] - (int)config.delta_thresholds[3], 0),
+            delta_4 = std::max(delta_levels[4] - (int)config.delta_thresholds[4], 0),
+            max_delta = std::max({ delta_2, delta_3, delta_4 });
+
+        if (max_delta >= 0)
+        {
+            suppress[2] = suppress[3] = suppress[4] = true;
+            const int  idx_max = ((delta_4 == max_delta) ? 4 : (delta_3 == max_delta) ? 3 : 2);
+            suppress[idx_max] = false;
+        }
+    }
     
     std::array<unsigned, 5>  filtered_levels{};
-    std::array<bool, 5> active_sensors{};
+    std::array<bool, 5> active_sensors = key_states;
     for (unsigned i = 0; i < 5; i++)
     {
-        if (original_levels[i] > config.level_thresholds[i] && delta_levels[i] >(int)config.delta_thresholds[i])
+        if (original_levels[i] > config.level_thresholds[i] && delta_levels[i] >(int)config.delta_thresholds[i]  && ! suppress[i])
         {
-            filtered_levels[i] = original_levels[i];
             active_sensors[i] = true;
-        }            
+        }   
+
+        if (active_sensors[i] && original_levels[i] <= config.level_thresholds[i])
+        {
+            active_sensors[i] = false;
+        }
+
+        filtered_levels[i] = active_sensors[i]?original_levels[i] : 0;
     }    
 
     for (unsigned i = 0; i < 5; ++i)
