@@ -26,18 +26,8 @@
 #include "server.h"
 #include "key_filter.h"
 #include "config_monitor.h"
+#include "utils.h"
 
-#define LOG(cmd) do { std::clog << "\t" << __LINE__ << ": " << #cmd << std::endl; cmd; } while(0);
-
-#define ENSURE(cmd, err)  do { if (!(cmd)) { \
-    std::cerr << "ERROR in line " << __LINE__ << "\t" << (err) << std::endl; throw BaseException(); } } while (0);
-
-template <typename T>    
-std::string to_string(const T x) {
-    return  dynamic_cast<std::stringstream &>(std::stringstream() << x).str();
-}
-
-struct BaseException {};
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------//
 
 std::array<unsigned, 10>  default_filtering_f(const uint8_t levels[5]) {

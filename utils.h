@@ -3,6 +3,15 @@
 
 #include <exception>
 #include <memory>
+#include <string>
+#include <sstream>
+
+#define LOG(cmd) do { std::clog << "\t" << __LINE__ << ": " << #cmd << std::endl; cmd; } while(0);
+
+template <typename T>
+std::string to_string(const T x) {
+    return  dynamic_cast<std::stringstream &>(std::stringstream() << x).str();
+}
 
 #define ENSURE(cmd, err) \
     do { \

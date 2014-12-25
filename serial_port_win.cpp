@@ -36,8 +36,7 @@ std::vector<std::string> ScanSerialPorts()
 {
     std::vector<std::string> port_names;
     for (auto i = 1; i < 100; i++) {
-        char nstr[4]; sprintf(nstr, "%d", (int)i);
-        const auto  port_name = std::string("COM") + nstr;
+        const auto  port_name = std::string("COM") + to_string(i);
         auto h = CreateSerialPort(port_name);
         if (h != INVALID_HANDLE_VALUE)
             port_names.push_back(port_name);
