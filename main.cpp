@@ -6,7 +6,6 @@
 #include <cstdlib>
 #include <cstdint>
 #include <ctime>
-#include <windows.h>
 
 #include <iostream>
 #include <fstream>
@@ -147,7 +146,7 @@ namespace
         STATE_INIT, STATE_DISCOVERING, STATE_CONNECTING, STATE_CONNECTED, STATE_ATTRIB_INFO_SEARCH, STATE_MONITORING);
 };
 
-SM_ACTION(sm, STATE_INIT, StateMachine_StartEvent, e)                  { LOG(ble_cmd_gap_end_procedure()); /*stop prev op*/ Sleep(300); }
+SM_ACTION(sm, STATE_INIT, StateMachine_StartEvent, e)                  { LOG(ble_cmd_gap_end_procedure()); /*stop prev op*/ SleepMs(300); }
 SM_ACTION(sm, STATE_INIT, ble_msg_gap_end_procedure_rsp_t, e)          { LOG(ble_cmd_gap_discover(gap_discover_observation)); }
 SM_ACTION(sm, STATE_INIT, ble_msg_gap_discover_rsp_t, e)               {
     ENSURE(e->result == 0, "Cannot start the Discover procedure");  
