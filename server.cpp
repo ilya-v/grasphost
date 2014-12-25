@@ -23,7 +23,7 @@ namespace DataServerImpl {
 
         bool IsGood() const { return client_thread.joinable(); }
 
-        std::string  port{ "11003" };
+        std::string  port = "11003";
 
         std::queue<std::string>     data_queue;
         std::mutex                  data_mutex;

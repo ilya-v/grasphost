@@ -12,9 +12,9 @@ struct config_t {
 
     bool  is_config_set = false;
     std::array<unsigned, 5>
-        key_codes{ {} },
-        level_thresholds{ {} },
-        delta_thresholds{ {} };
+        key_codes = {},
+        level_thresholds ={} ,
+        delta_thresholds ={};
 
 };
 
