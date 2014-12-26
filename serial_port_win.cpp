@@ -45,11 +45,6 @@ std::vector<std::string> ScanSerialPorts()
     return port_names;
 }
 
-void SleepMs(const unsigned msec) 
-{
-    ::Sleep(msec);
-}
-
 
 HANDLE SerialPort::Impl::PersistentOpen(const char *port_name_arg)
 {

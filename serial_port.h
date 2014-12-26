@@ -7,7 +7,6 @@
 #include <memory>
 
 std::vector<std::string> ScanSerialPorts();
-void SleepMs(const unsigned msec);
 
 struct SerialPort
 {

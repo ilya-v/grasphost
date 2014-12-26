@@ -13,9 +13,6 @@ struct  DataServer {
     ~DataServer(); 
 
     std::unique_ptr<DataServerImpl::DataServer>  data_server; 
-
-
-
 };
 
 #endif
