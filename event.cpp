@@ -4,6 +4,7 @@
 #include "utils.h"
 
 #include "event_win.h"
+#include "event_posix.h"
 
 Event::Event() : p_impl(make_unique<Event::Impl>()) {}
 Event::~Event() {}
