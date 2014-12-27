@@ -8,7 +8,7 @@
 #include "event.h"
 
 #include <sys/types.h>
-#inculde <sys/socket.h>
+#include <sys/socket.h>
 #include "utils.h"
 
 struct Event::Impl
