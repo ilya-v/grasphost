@@ -1,17 +1,27 @@
-CC = mingw32-g++.exe -static 
+OS_VERSION:=$(shell uname)
+ifneq (,$(findstring CYGWIN, $(OS_VERSION)))
+ 	CC = g++
+else
+	CC = mingw32-g++.exe
+endif
+
 
 TARGET = grasphost
 
 MACHINE = $(shell $(CC) -dumpmachine)
 # Windows
-ifneq (,$(or $(findstring mingw, $(MACHINE)), $(findstring cygwin, $(MACHINE))))
+ifneq (,$(findstring mingw, $(MACHINE)))
 	PLATFORM = WIN
-	LIBS = -lm -lsetupapi 
+	LIBS = -lm -lsetupapi -lws2_32
 	RM = del
-# POSIX
+else 
+ifneq (,$(findstring cygwin, $(MACHINE)))
+	PLATFORM = POSIX
+	LIBS = -lm
 else
 	PLATFORM = POSIX
 	LIBS = -lm
+endif
 endif
 
 SRCSC := $(wildcard *.c)

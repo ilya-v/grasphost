@@ -2,10 +2,13 @@
 #define _socket__h__
 
 #include <memory>
+#include <algorithm>
 
 struct ClientSocket
 {
     ~ClientSocket();
+    ClientSocket(ClientSocket &&x);
+
     bool IsGood() const;
     void Send(const void *data, const unsigned size);
     void Close();
@@ -14,7 +17,7 @@ private:
     struct Impl;
     std::unique_ptr<Impl> p_impl;
 
-    ClientSocket(std::unique_ptr<ClientSocket::Impl> & p);
+    ClientSocket(std::unique_ptr<ClientSocket::Impl> p);
     friend struct ServerSocket;
 };
 

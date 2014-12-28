@@ -6,6 +6,7 @@
 #if defined _POSIX_VERSION
 
 #include <functional>
+#include "serial_port.h"
 
 struct SerialPort::Impl
 {
@@ -16,7 +17,7 @@ struct SerialPort::Impl
     void  Read(unsigned char * data, const unsigned size);
 
 private:
-    int fd_port;
+    int fd_port = 0;
     static int PersistentOpen(const char *port_name);
 };
 

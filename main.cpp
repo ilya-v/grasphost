@@ -19,7 +19,9 @@
 #include <sstream>
 #include <thread>
 
+#ifdef _MSC_VER
 #pragma warning( disable : 4200 )
+#endif
 
 #include "cmd_def.h"
 #include "serial_port.h"

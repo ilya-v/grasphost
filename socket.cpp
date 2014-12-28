@@ -1,9 +1,11 @@
 #include "socket.h"
 
 #include "socket_win.h"
+#include "socket_posix.h"
 #include "utils.h"
 
-ClientSocket::ClientSocket(std::unique_ptr<ClientSocket::Impl> &p) : p_impl(std::move(p))  {}
+ClientSocket::ClientSocket(std::unique_ptr<ClientSocket::Impl> p) : p_impl(std::move(p))  {}
+ClientSocket::ClientSocket(ClientSocket &&x) { std::swap(p_impl, x.p_impl); };
 ClientSocket::~ClientSocket() {}
 
 bool ClientSocket::IsGood() const { return !! p_impl; }
@@ -21,5 +23,7 @@ ServerSocket::ServerSocket() : p_impl(make_unique<ServerSocket::Impl>()) {}
 ServerSocket::~ServerSocket() {}
 
 bool ServerSocket::Init(const char *port_name) { return p_impl->Init(port_name); }
-ClientSocket ServerSocket::Accept() { return ClientSocket{ p_impl->Accept() }; }
+ClientSocket ServerSocket::Accept() {
+    return std::move(ClientSocket(std::move(p_impl->Accept())));
+}
 bool ServerSocket::IsGood() const { return p_impl->IsGood(); }

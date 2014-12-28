@@ -67,7 +67,7 @@ namespace DataServerImpl {
                 std::this_thread::sleep_for(std::chrono::seconds(1)))
             {
                 is_client_connected = false;
-                for (ClientSocket client_socket = server_socket.Accept(); client_socket.IsGood() && server_socket.IsGood() && !stop_flag;)
+                for (ClientSocket client_socket (server_socket.Accept()); client_socket.IsGood() && server_socket.IsGood() && !stop_flag;)
                 {   
                     is_client_connected = true;
                     const std::string  data_string = wipeQueue(stop_flag);

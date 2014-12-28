@@ -1,7 +1,11 @@
 #include "socket_win.h"
 #include "socket.h"
 
-#ifdef _WIN32
+#if defined(_WIN32) 
+
+#if defined(__MINGW32__) || defined(__MINGW64__)
+#define WINVER  0x501
+#endif
 
 #include <windows.h>
 #include <winsock2.h>
@@ -11,7 +15,9 @@
 #include <iostream>
 #include "utils.h"
 
+#ifdef _MSC_VER
 #pragma comment(lib, "Ws2_32.lib")
+#endif
 
 bool ClientSocket::Impl::Send(const void * data, const unsigned size)
 {

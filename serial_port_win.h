@@ -1,7 +1,7 @@
 #ifndef _serial_port_win__h_
 #define _serial_port_win__h_
 
-#ifdef _WIN32 
+#if defined(_WIN32)
 
 #ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS

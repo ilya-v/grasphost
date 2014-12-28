@@ -1,13 +1,15 @@
 #ifndef _socket_win__h__
 #define _socket_win__h__
-#ifdef _WIN32
+#if defined(_WIN32)
+
+#if defined(__MINGW32__) || defined(__MINGW64__)
+#define WINVER  0x501
+#endif
 
 #include <memory>
 #include <winsock2.h>
 
 #include "socket.h"
-
-struct ServerSocket::Impl;
 
 struct ClientSocket::Impl
 {

@@ -1,7 +1,5 @@
 #include "serial_port_win.h"
 
-#ifdef _WIN32 
-
 #ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
 #endif
@@ -14,10 +12,11 @@
 #include <sstream>
 #include <vector>
 
+#include "utils.h"
+
+#if defined(_WIN32) || defined(__CYGWIN__)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-
-#include "utils.h"
 
 
 namespace {
@@ -44,6 +43,10 @@ std::vector<std::string> ScanSerialPorts()
     }
     return port_names;
 }
+
+#endif
+
+#if defined(_WIN32)
 
 
 HANDLE SerialPort::Impl::PersistentOpen(const char *port_name_arg)

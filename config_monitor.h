@@ -8,14 +8,16 @@
 struct config_t {
 
     config_t & operator=(const config_t &) = default;
-    bool operator !=(const config_t & x) const    { return !!memcmp(this, &x, sizeof(*this));   };
+    bool operator !=(const config_t & x) const    { 
+        return std::tie(is_config_set, key_codes, level_thresholds, delta_thresholds) 
+            != std::tie(x.is_config_set, x.key_codes, x.level_thresholds, x.delta_thresholds);
+    };
 
     bool  is_config_set = false;
     std::array<unsigned, 5>
         key_codes = {},
-        level_thresholds ={} ,
+        level_thresholds ={},
         delta_thresholds ={};
-
 };
 
 config_t  get_config(const std::string & config_file_name);

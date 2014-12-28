@@ -1,4 +1,6 @@
 #include "serial_port_mac.h"
+#include "utils.h"
+#include <thread>
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <vector>
@@ -18,6 +20,9 @@
 #include <IOKit/serial/IOSerialKeys.h>
 #include <IOKit/serial/ioss.h>
 #include <IOKit/IOBSD.h>
+
+#include <thread>
+#include <chrono>
 
 std::vector<std::string> ScanSerialPorts()
 {
@@ -55,6 +60,47 @@ std::vector<std::string> ScanSerialPorts()
 #if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
 #include <unistd.h>
 #if defined _POSIX_VERSION
+
+#include <errno.h>
+#include <fcntl.h>
+
+
+void  SerialPort::Impl::RestartInit(const char *port_name, std::function<void()> f_restart)
+{
+    fd_port = PersistentOpen(port_name);
+    f_restart();
+    this->Close();
+    fd_port = PersistentOpen(port_name);
+    ENSURE(fd_port > 0, "Error opening serial port");
+}
+
+void  SerialPort::Impl::Close() { if(fd_port > 0) close(fd_port); }
+
+void  SerialPort::Impl::Write(const unsigned char * data, const unsigned size)
+{
+    unsigned n = 0;
+    for (int r =  write(fd_port, data, size); errno == EINTR|| (r >= 0 && n < size); n += std::max(r,0) )
+        r = write(fd_port, data + n, size - n);
+
+    ENSURE(n == size, "Error writing to the serial port")
+}
+void  SerialPort::Impl::Read(unsigned char * data, const unsigned size)
+{
+    unsigned n = 0;
+    for (int r = read(fd_port, data, size); errno == EINTR || (r >= 0 && n < size); n += std::max(r,0) )
+        r = read(fd_port, data + n, size - n);
+}
+
+int SerialPort::Impl::PersistentOpen(const char *port_name) {
+    int fd_port = -1;
+    for (int attempt_count = 20; attempt_count > 0 && fd_port < 0; attempt_count--)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        fd_port = open(port_name, O_RDWR | O_NOCTTY | O_NDELAY);
+    }
+    fcntl(fd_port, F_SETFL, 0);
+    return  fd_port;
+}
 
 
 #endif
