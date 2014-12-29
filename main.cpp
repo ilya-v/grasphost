@@ -326,21 +326,10 @@ int main(int argc, char *argv[] )
     static SerialPort  serial_port;
 
     bglib_output = [](uint8_t len1, uint8_t* data1, uint16_t len2, uint8_t* data2)  {
-        printf(">\n");
-        for (uint8_t *p = data1; p < data1 + len1; p++)
-            printf(".%02X", (unsigned)*p);
-        printf("; [%d]", (int)len2);
-        for (uint8_t *p = data2; p < data2 + len2; p++)
-            printf(".%02X", (unsigned)*p);
-        printf(".\n");
-        fflush(stdout);
-        if (len1)
+       if (len1)
             serial_port.Write(data1, len1);
-        printf("$\n"); fflush(stdout);
-        if (len2)
+       if (len2)
             serial_port.Write(data2, len2);
-        printf("#\n");
-        fflush(stdout);
     };
 
     serial_port.RestartInit(port_name.c_str(), []() { /*ble_cmd_system_reset(0); Sleep(5000);*/ });

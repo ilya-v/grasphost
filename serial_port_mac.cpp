@@ -83,11 +83,8 @@ void  SerialPort::Impl::Close() { if(fd_port > 0) close(fd_port); }
 void  SerialPort::Impl::Write(const unsigned char * data, const unsigned size)
 {
     unsigned n = 0;
-    for (int r = 0; (r >= 0 && n < size) || errno == EINTR; n += std::max(r,0) ){ 
-        printf("{"); fflush(stdout);
+    for (int r = 0; (r >= 0 && n < size) || errno == EINTR; n += std::max(r,0) )
         r = write(fd_port, data + n, size - n);
-        printf("}"); fflush(stdout);
-    }
 
     ENSURE(n == size, "Error writing to the serial port")
 }
