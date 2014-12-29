@@ -22,7 +22,6 @@ struct SerialPort
 private:
     struct Impl;
     std::unique_ptr<Impl> p_impl;
-
 };
 
 #endif
