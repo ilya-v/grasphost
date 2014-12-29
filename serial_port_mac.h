@@ -8,6 +8,8 @@
 #include <functional>
 #include "serial_port.h"
 
+#pragma message "serial_port_mac.h included"
+
 struct SerialPort::Impl
 {
     void  RestartInit(const char *port_name, std::function<void()> f_restart);

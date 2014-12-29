@@ -24,6 +24,8 @@
 #include <thread>
 #include <chrono>
 
+#pragma message "serial_port_mac.cpp part 1 compiled"
+
 std::vector<std::string> ScanSerialPorts()
 {
     CFMutableDictionaryRef classesToMatch = IOServiceMatching(kIOSerialBSDServiceValue);
@@ -63,6 +65,8 @@ std::vector<std::string> ScanSerialPorts()
 
 #include <errno.h>
 #include <fcntl.h>
+
+#pragma message "serial_port_mac.cpp part 2 compiled"
 
 
 void  SerialPort::Impl::RestartInit(const char *port_name, std::function<void()> f_restart)
