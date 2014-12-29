@@ -2,7 +2,11 @@ OS_VERSION:=$(shell uname)
 ifneq (,$(findstring CYGWIN, $(OS_VERSION)))
  	CC = g++
 else
+ifneq  (,$(findstring Darwin, $(OS_VERSION)))
+	CC = gcc
+else 
 	CC = mingw32-g++.exe
+endif
 endif
 
 
