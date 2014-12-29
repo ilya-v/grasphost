@@ -1,5 +1,6 @@
 #include "serial_port.h"
 #include "serial_port_win.h"
+#include "serial_port_mac.h"
 #include "utils.h"
 
 #include <memory>
