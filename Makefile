@@ -35,7 +35,7 @@ CC_VERSION := $(shell $(CC) --version)
 
 # detect clang symlinked as gcc, as in OS X
 ifeq ($(findstring clang,$(CC_VERSION)),clang)
-	LIBS += -framework IOKit -framework CoreFoundation -framework ApplicationServices
+	LIBS += -framework IOKit -framework CoreFoundation -framework ApplicationServices -lc++ -lc++abi -stdlib=libc++
 	COMP_FLAGS += -stdlib=libc++
 else # gcc
 	COMP_FLAGS += -mno-ms-bitfields -static-libgcc -static-libstdc++
