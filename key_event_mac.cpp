@@ -8,7 +8,7 @@ namespace {
     void simulate_key_event_mac(const unsigned key_code, const bool is_push) {
 
         CGEventSourceRef source = CGEventSourceCreate(kCGEventSourceStateCombinedSessionState);
-        CGEventRef cmd = CGEventCreateKeyboardEvent(source, (CGKeyCode)key_code, is_push?YES:NO);
+        CGEventRef cmd = CGEventCreateKeyboardEvent(source, (CGKeyCode)key_code, is_push);
         CGEventPost(kCGAnnotatedSessionEventTap, cmd);
         CFRelease(cmd);
         CFRelease(source);
