@@ -52,7 +52,7 @@ all: $(TARGET)
     
 %.o: %.cpp
 	@echo 'CPP: $<'
-	$(CC) $(COMP_FLAGS) -O3 -Wall -c -static  -std=c++11 -D_GLIBCXX_HAVE_BROKEN_VSWPRINTF -fmessage-length=0 -DPLATFORM_$(PLATFORM) -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o"$@" "$<" $(SRCSCPP)
+	$(CC) $(COMP_FLAGS) -O3 -Wall -c -static  -std=c++11 -D_GLIBCXX_HAVE_BROKEN_VSWPRINTF -fmessage-length=0 -DPLATFORM_$(PLATFORM) -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o"$@" "$<"
 
 $(TARGET): $(OBJS)
 	@echo 'Building target: $@'
