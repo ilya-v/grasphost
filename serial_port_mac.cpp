@@ -2,7 +2,11 @@
 #include "utils.h"
 #include <thread>
 
+#pragma message "serial_port_mac.cpp.0"
+
 #if defined(__APPLE__) && defined(__MACH__)
+
+#pragma message "serial_port_mac.cpp.1"
 #include <vector>
 #include <string>
 
