@@ -42,7 +42,7 @@ std::vector<std::string> ScanSerialPorts()
 
     std::vector<std::string> ports_found;
     io_object_t		modemService;
-    for (; (modemService = IOIteratorNext(serialPortIterator)); ) {
+    for (; (modemService = IOIteratorNext(matchingServices)); ) {
         CFTypeRef bsdPathAsCFString = IORegistryEntryCreateCFProperty(modemService, CFSTR(kIOCalloutDeviceKey), kCFAllocatorDefault, 0);
         if (!bsdPathAsCFString) continue;
 

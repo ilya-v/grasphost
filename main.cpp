@@ -260,7 +260,7 @@ SM_ACTION(sm, STATE_MONITORING, ble_msg_attclient_attribute_value_evt_t, e)
     std::array<unsigned, 10> filtered_data  =  on_kbd_data_f(e->value.data);
     std::cout << "*** \t" << std::setfill('0');
     const uint8_t *d = e->value.data;
-    for (auto x : std::array<unsigned, 5>({ d[0], d[1], d[2], d[3], d[4] }))
+    for (auto x : std::array<unsigned, 5>({ { d[0], d[1], d[2], d[3], d[4] } }))
         std::cout << std::hex << std::setw(2) << (unsigned)x << ".";
 
     auto ticks = clock();
