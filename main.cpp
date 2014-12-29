@@ -329,7 +329,7 @@ int main(int argc, char *argv[] )
         printf(">\n");
         for (uint8_t *p = data1; p < data1 + len1; p++)
             printf(".%02X", (unsigned)*p);
-        printf("; [%d]", len2);
+        printf("; [%d]", (int)len2);
         for (uint8_t *p = data2; p < data2 + len2; p++)
             printf(".%02X", (unsigned)*p);
         printf(".\n");
