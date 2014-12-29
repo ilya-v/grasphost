@@ -332,7 +332,7 @@ int main(int argc, char *argv[] )
         printf(";");
         for (uint8_t *p = data2; p < data2 + len2; p++)
             printf(".%02X", (unsigned)*p);
-        printf("\n");
+        printf(".\n");
         fflush(stdout);
         serial_port.Write(data1, len1);
         serial_port.Write(data2, len2);
