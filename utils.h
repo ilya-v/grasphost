@@ -13,7 +13,7 @@ template <typename T>
 std::string to_string(const T x) {
     std::stringstream sstr;
     sstr << x;
-    return  x.str();
+    return  sstr.str();
 }
 
 #define ENSURE(cmd, err) \
