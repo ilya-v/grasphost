@@ -19,6 +19,7 @@
 #include <mach/mach.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOKitLib.h>
+#include <IOKit/IOTypes.h>
 #include <IOKit/serial/IOSerialKeys.h>
 #include <IOKit/serial/ioss.h>
 #include <IOKit/IOBSD.h>
@@ -36,8 +37,8 @@ std::vector<std::string> ScanSerialPorts()
 
 
     io_iterator_t matchingServices;
-    const kern_return_t res = IOServiceGetMatchingServices(kIOMasterPortDefault, classesToMatch, matchingServices);
-    ENSURE(KERN_SUCCESS == kernResult, "IOServiceGetMatchingServices returned " + to_string(res));
+    const kern_return_t res = IOServiceGetMatchingServices(kIOMasterPortDefault, classesToMatch, &matchingServices);
+    ENSURE(KERN_SUCCESS == res, "IOServiceGetMatchingServices returned " + to_string(res));
 
     std::vector<std::string> ports_found;
     io_object_t		modemService;
