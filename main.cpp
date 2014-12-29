@@ -334,8 +334,10 @@ int main(int argc, char *argv[] )
             printf(".%02X", (unsigned)*p);
         printf(".\n");
         fflush(stdout);
-        serial_port.Write(data1, len1);
-        serial_port.Write(data2, len2);
+        if (len1)
+            serial_port.Write(data1, len1);
+        if (len2)
+            serial_port.Write(data2, len2);
         printf("#\n");
         fflush(stdout);
     };
