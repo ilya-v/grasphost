@@ -2,11 +2,8 @@
 #include "utils.h"
 #include <thread>
 
-#pragma message "serial_port_mac.cpp.0"
-
 #if defined(__APPLE__) && defined(__MACH__)
 
-#pragma message "serial_port_mac.cpp.1"
 #include <vector>
 #include <string>
 
@@ -19,16 +16,16 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <time.h>
+#include <mach/mach.h>
 #include <CoreFoundation/CoreFoundation.h>
 #include <IOKit/IOKitLib.h>
 #include <IOKit/serial/IOSerialKeys.h>
 #include <IOKit/serial/ioss.h>
 #include <IOKit/IOBSD.h>
 
+
 #include <thread>
 #include <chrono>
-
-#pragma message "serial_port_mac.cpp part 1 compiled"
 
 std::vector<std::string> ScanSerialPorts()
 {
@@ -69,8 +66,6 @@ std::vector<std::string> ScanSerialPorts()
 
 #include <errno.h>
 #include <fcntl.h>
-
-#pragma message "serial_port_mac.cpp part 2 compiled"
 
 
 void  SerialPort::Impl::RestartInit(const char *port_name, std::function<void()> f_restart)

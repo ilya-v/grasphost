@@ -2,14 +2,11 @@
 #define _serial_port_mac__h__
 
 #if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
-#pragma message "serial_port_mac.h ifdef.1"
 #include <unistd.h>
 #if defined _POSIX_VERSION
 
 #include <functional>
 #include "serial_port.h"
-
-#pragma message "serial_port_mac.h included"
 
 struct SerialPort::Impl
 {

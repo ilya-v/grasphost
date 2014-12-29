@@ -5,8 +5,6 @@
 
 #include <memory>
 
-#pragma message "serial_port.cpp compiling"
-
 SerialPort::SerialPort() : p_impl(make_unique<SerialPort::Impl>()) {}
 SerialPort::~SerialPort() {}
 
