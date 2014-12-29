@@ -11,7 +11,9 @@
 
 template <typename T>
 std::string to_string(const T x) {
-    return  dynamic_cast<std::stringstream &>(std::stringstream() << x).str();
+    std::stringstream() sstr;
+    sstr << x;
+    return  x.str();
 }
 
 #define ENSURE(cmd, err) \
