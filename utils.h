@@ -11,7 +11,7 @@
 
 template <typename T>
 std::string to_string(const T x) {
-    std::stringstream() sstr;
+    std::stringstream sstr;
     sstr << x;
     return  x.str();
 }
