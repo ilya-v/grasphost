@@ -52,7 +52,8 @@ all: $(TARGET)
     
 %.o: %.cpp
 	@echo 'CPPS: $(SRCSCPP)'
-	$(CC) $(COMP_FLAGS) -O3 -Wall -c -static  -std=c++11 -D_GLIBCXX_HAVE_BROKEN_VSWPRINTF -fmessage-length=0 -DPLATFORM_$(PLATFORM) -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o"$@" "$<"
+	@echo 'CPPS.2: $<'
+	$(CC) $(COMP_FLAGS) -O3 -Wall -c -static  -std=c++11 -D_GLIBCXX_HAVE_BROKEN_VSWPRINTF -fmessage-length=0 -DPLATFORM_$(PLATFORM) -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -o"$@" "$<" $(SRCSCPP)
 
 $(TARGET): $(OBJS)
 	@echo 'Building target: $@'
