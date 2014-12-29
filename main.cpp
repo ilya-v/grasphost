@@ -336,6 +336,8 @@ int main(int argc, char *argv[] )
         fflush(stdout);
         serial_port.Write(data1, len1);
         serial_port.Write(data2, len2);
+        printf("#\n");
+        fflush(stdout);
     };
 
     serial_port.RestartInit(port_name.c_str(), []() { /*ble_cmd_system_reset(0); Sleep(5000);*/ });
