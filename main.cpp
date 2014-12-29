@@ -336,6 +336,7 @@ int main(int argc, char *argv[] )
         fflush(stdout);
         if (len1)
             serial_port.Write(data1, len1);
+        printf("$\n"); fflush(stdout);
         if (len2)
             serial_port.Write(data2, len2);
         printf("#\n");
