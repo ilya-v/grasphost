@@ -35,7 +35,7 @@ bool ServerSocket::Impl::Init(const char *port_name)
 {
     Close();
 
-    if (socket(AF_INET, SOCK_STREAM, 0) < 0) {
+    if (server_socket = socket(AF_INET, SOCK_STREAM, 0) < 0) {
         std::cout << "Error creating socket: " << errno << std::endl;
         return false;
     }
