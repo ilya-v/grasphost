@@ -50,6 +50,7 @@ namespace {
         PF_set = 1;                     // "previous forces" were set for the next iteration
     }
 }
+
 std::array<unsigned, 10>  process_sensor_levels(const config_t & config, const uint8_t levels[5])
 {
     const int adc[5] = { levels[0], levels[1], levels[2], levels[3], levels[4] };
